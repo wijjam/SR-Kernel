@@ -22,25 +22,13 @@ void process_input(char* input) {
     } else if (cmd_hash == MEM_HASH) {
         kprintf("Allocating memory\n");
         char* h = (char*)kmalloc(50);
-        free((void*)0);
-if (h != (void*)0) {
-    kprintf("Allocation succeeded!\n");
-    // Try writing some data
-    h[0] = 'T';
-    h[1] = 'e';
-    h[2] = 's';
-    h[3] = 't';
-    h[4] = '\0';
-    kprintf("Data written: %s\n", h);
-} else {
-    kprintf("Allocation failed!\n");
-}
-        
-
     } else if (cmd_hash == TIME_HASH) {
         print_rtc_time();
     } else if (cmd_hash == CLEAR_HASH) {
         clearScreen();
+    } else if (cmd_hash == DEBUG_HASH) {
+        print("Aha");
+        debug_heap();
     }
     
 

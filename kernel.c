@@ -18,7 +18,44 @@
 
 
 void kernel_main(void) {
-    // In your main function:
+
+    pic_remap(32, 40);  // Remap IRQs: Master to 32-39, Slave to 40-47
+    pic_disable_irq(0); // Disable timer for now (would overwhelm us)
+    pic_enable_irq(1);  // Enable keyboard
+
+    init_interrupts();
+
+    pic_remap(32, 40);        // IRQ 0-7 → interrupts 32-39, IRQ 8-15 → interrupts 40-47
+    pic_disable_irq(0);       // Disable timer (would overwhelm us)
+    pic_enable_irq(1);        // Enable keyboard
+
+    heap_init();
+    init_keyboard();
+    init_char_table();
+
+    __asm__ volatile ("sti");
+
+    void* ptr1 = kmalloc(100);
+    void* ptr2 = kmalloc(50); 
+    void* ptr3 = kmalloc(200);
+    debug_heap();  // Should show 3 allocated blocks + remaining
+
+    kfree(ptr2);   // Free middle block
+    debug_heap();  // Should show: [alloc], [free], [alloc], [remaining]
+
+    kfree(ptr1);   // This should merge with ptr2's freed space!
+    debug_heap();  // Should show: [big_merged_free], [alloc], [remaining]
+
+
+    // Main kernel loop - just wait for interrupts
+    while (1) {
+        // Do nothing - let interrupts handle everything
+        // This is where your kernel "idles"
+    }
+
+
+    /*
+        // In your main function:
     kprintf("Setting up PIC...\n");
     pic_remap(32, 40);  // Remap IRQs: Master to 32-39, Slave to 40-47
     pic_disable_irq(0); // Disable timer for now (would overwhelm us)
@@ -70,11 +107,9 @@ void kernel_main(void) {
     
     kprintf("✅ INTERRUPTS ENABLED! Press keys now!\n");
     kprintf("(If you can read this, we didn't crash!)\n");
+    
+    */
 
-    // Main kernel loop - just wait for interrupts
-    while (1) {
-        // Do nothing - let interrupts handle everything
-        // This is where your kernel "idles"
-    }
+
 
 }
