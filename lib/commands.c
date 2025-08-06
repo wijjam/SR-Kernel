@@ -20,19 +20,17 @@ void process_input(char* input) {
     } else if (cmd_hash == NEOFETCH_HASH) {
         kprintf("You called neofetch my guy!!!\n");
     } else if (cmd_hash == MEM_HASH) {
-        kprintf("Allocating memory\n");
-        char* h = (char*)kmalloc(50);
+        test_kmalloc_kfree();
     } else if (cmd_hash == TIME_HASH) {
         print_rtc_time();
     } else if (cmd_hash == CLEAR_HASH) {
         clearScreen();
     } else if (cmd_hash == DEBUG_HASH) {
-        print("Aha");
-        debug_heap();
+        
     }
-    
-
 }
+
+
 
 char* get_first_word(char* input) {
     static char output[20];

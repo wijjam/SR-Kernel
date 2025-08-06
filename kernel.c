@@ -35,17 +35,6 @@ void kernel_main(void) {
 
     __asm__ volatile ("sti");
 
-    void* ptr1 = kmalloc(100);
-    void* ptr2 = kmalloc(50); 
-    void* ptr3 = kmalloc(200);
-    debug_heap();  // Should show 3 allocated blocks + remaining
-
-    kfree(ptr2);   // Free middle block
-    debug_heap();  // Should show: [alloc], [free], [alloc], [remaining]
-
-    kfree(ptr1);   // This should merge with ptr2's freed space!
-    debug_heap();  // Should show: [big_merged_free], [alloc], [remaining]
-
 
     // Main kernel loop - just wait for interrupts
     while (1) {
