@@ -14,6 +14,7 @@ static int right_shift_pressed = 0;
 #define RIGHT_SHIFT_PRESS   0x36
 #define RIGHT_SHIFT_RELEASE 0xB6
 
+// Create the command buffer where we save the keyboard input
 static char command_buffer[256];
 static int buffer_pos = 0;
 
@@ -35,7 +36,7 @@ void keyboard_interrupt_handler(void) {
             right_shift_pressed = 0;
             break;
         default:
-            // Handle regular keys
+            // Handle regular keys || 0x80 is a check to make sure we are pressing down and not releasing.
             if (!(scancode & 0x80)) {
                 // Key pressed
                 int shift_active = left_shift_pressed || right_shift_pressed;

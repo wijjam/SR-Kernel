@@ -94,7 +94,7 @@ void* kmalloc(uint32_t size) {
     return (void*)0;
 }
 
-void kfree(void* pointer) {
+void free(void* pointer) {
 
     // Checks the inputed pointer for NILL, exeding heap memory
     if (pointer == (void*)0 || pointer < (void*)start_heap_memory || pointer > (void*)heap_end) {
@@ -112,7 +112,7 @@ void kfree(void* pointer) {
         return;
     }
     // check if the current pointer is a merged and unusable header, if it is then print error and return. !
-    kprintf("Current_block magic: %d\n", current_block->magic);
+    //kprintf("Current_block magic: %d\n", current_block->magic);
     if (!(current_block->magic == MAGIC_FIRST || current_block->magic == MAGIC_MIDDLE)) {
         kprintf("\n%eEhm sorry but... freeing a invlid header is not really allowed so...... yeah\n");
         kprintf("\n%eTried to free a corrupted pointer in kfree()\n");
@@ -130,45 +130,67 @@ void kfree(void* pointer) {
     }
 
     current_block->flag = 0;
-
-    // Check if the next header block to the right has a valid address inside the heap and if it's previous variable is valid.
-    struct heap* next_block = ((struct heap*)((char*)current_block + (current_block->size)));
+    
     // We make sure that we only go backwards if we are not on the first block, because backwards from there is outside of the heap.
-         
-
     if (current_block->magic != MAGIC_FIRST) {
         struct heap* prev_block = (struct heap*)((char*)current_block - current_block->prev_size);
-
         // Stop once we reach the left most block
+        //kprintf("\n=========Just before the first loop =============\n");
 
-        kprintf("\n\n=========Just before the first loop =============\n");
-     kprintf("\ncurrent's position:[%d], Size[%d], Magic[%d], previous_size[%d]\n\n", current_block, current_block->size, current_block->magic, current_block->prev_size);
-     kprintf("prev's position:[%d], Size[%d], Magic[%d], previous_size[%d], flag[%d]\n", prev_block, prev_block->size, prev_block->magic, prev_block->prev_size, prev_block->flag);
         while (prev_block->flag == 0) {
             
-            kprintf("\nGoing into the first loop\n");
-            kprintf("\ncurrent's position:[%d], Size[%d], Magic[%d], previous_size[%d]\n\n", current_block, current_block->size, current_block->magic, current_block->prev_size);
 
-            
+            // If we are on the first one we stop
             if (current_block->magic == MAGIC_FIRST) {
                 break;
+                // We just continue if we are on the middle.
             } else if (current_block->magic == MAGIC_MIDDLE) {
 
             } else {
+                // If we reach this then there is a error since the block is useless.
+                kprintf("The magic is: %d\n", current_block->magic);
                 kprintf("%eBlock chain error detected. in the back loop\n");
                 return;
             }
 
-            
-            kprintf("\nI am currently at %d\n", prev_block);
             current_block = prev_block;
             prev_block = (struct heap*)((char*)current_block - current_block->prev_size);
 
         }
     }
-     kprintf("\n\n=========Just left the first loop =============\n");
-     kprintf("\ncurrent's position:[%d], Size[%d], Magic[%d], previous_size[%d]\n\n", current_block, current_block->size, current_block->magic, current_block->prev_size);
 
+
+
+    // Check if the next header block to the right has a valid address inside the heap and if it's previous variable is valid.
+    struct heap* next_block = ((struct heap*)((char*)current_block + (current_block->size)));
+    // Save the current left most block in start_block.
+    struct heap* start_block = current_block;
+    if ((char*)next_block - next_block->prev_size != (char*)current_block) {
+        kprintf("%eUGH next blocks previous is not current. error..\n");
+        return;
+    } 
+    while (next_block < heap_end) { 
+
+
+        if (next_block->flag == 0 && next_block->magic != MAGIC_GONE) {
+
+            start_block->size += next_block->size;
+            next_block->magic = MAGIC_GONE;
+            ((struct heap*)((char*)next_block + (next_block->size)))->prev_size = start_block->size;
+
+            if (start_block->size > HEAP_SIZE) {
+                kprintf("%e This is illegal!!!\n");
+                kprintf("For some reason in the second loop the size of start_block is: %d\n", start_block->size);
+            }
+
+            current_block = next_block;
+            next_block = ((struct heap*)((char*)current_block + (current_block->size)));
+
+        } else {
+            break;
+        }    
+
+    }
 
 
 
@@ -196,41 +218,34 @@ void test_kmalloc_kfree() {
         return;
     }
 
-    if (ptr2 == (void*)0) {
-        kprintf("%eHEy no null pointers in my house.2\n");
-        return;
-    }
-
     ptr[0] = 'C';
     ptr[1] = 'A';
     ptr[2] = 'K';
     ptr[3] = 'E';
     ptr[4] = '\0';
 
-    ptr2[0] = 'W';
-    ptr2[1] = 'I';
-    ptr2[2] = 'L';
-    ptr2[3] = 'L';
-    ptr2[4] = '\0';
-
-    kprintf("Now it should work. Here is the test word: %s\n", ptr);
-    kprintf("Now it should work. Here is the test word: %s\n", ptr2);
+    kprintf("Current word: %s\n", ptr);
+    print_heap();
 
     kfree(ptr);
-    kfree(ptr2);
+    print_heap();
+    
+    
+    
 
-    //void* ptr2 = kmalloc(33000);
+}
 
+void print_heap() {
     struct heap* current = start_heap_memory;
     struct heap* next = (struct heap*)((char*)current + current->size);
     while (current < heap_end) {
-        //kprintf("\nWe are at address: [%d] with state: [%d] and the size is: [%d] \n", current, current->flag, current->size);
+
+        kprintf("We are at address: [%d] with state: [%d] and the size is: [%d] \n", current, current->flag, current->size);
         current = next;
         next = (struct heap*)((char*)current + current->size);
         
     }
-    
-
+    kprintf("\n");
 }
 
 

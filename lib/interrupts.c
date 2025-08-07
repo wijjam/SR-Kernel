@@ -1,5 +1,7 @@
 #include "../include/interrupts.h"
 #include "../include/vga.h"
+#include "../include/pic.h"
+#include "../include/io.h"
 
 // The IDT table - 256 entries (one for each possible interrupt)
 static struct idt_entry idt[256];
@@ -42,21 +44,26 @@ void init_interrupts(void) {
     kprintf("Current code segment: %d\n", cs);
     
     install_idt();
+    setup_time(11932); // makes it so we get 1 interrupt per 10ms
     
     // Use the actual current code segment instead of assuming 0x08
-    set_idt_entry(80, (uint32_t)isr_wrapper_80, cs, 0x8E);
     set_idt_entry(33, (uint32_t)isr_wrapper_33, cs, 0x8E);
+    set_idt_entry(32, (uint32_t)isr_wrapper_32, cs, 0x8E);
+}
+
+
+void timer_interrupt_handler() {
     
-    kprintf("Interrupts installed: 80=test, 33=keyboard\n");
+    kprintf("a\n");
+    
+    pic_send_eoi(0);
 }
 
+void setup_time(uint16_t divisor) {
 
-void test_interrupt_handler(void) {
-    kprintf("Interrupt fired! It works yay.\n");
-}
+    outb(0x43, 0x36); // We are telling the PIT to use Channel 0 which is the timer Channel
 
-void test_software_interrupt(void) {
-    kprintf("About to trigger interrupt 80...\n");
-    __asm__ volatile ("int $80");
-    kprintf("Back from interrupt - it worked!\n");
+    outb(0x40, (divisor & 0x00FF)); // Just compare the right most number aka the low bit.
+    outb(0x40, (divisor >> 8) & 0x00FF);  // Shift right and compare getting the top bit.
+
 }

@@ -20,14 +20,10 @@
 void kernel_main(void) {
 
     pic_remap(32, 40);  // Remap IRQs: Master to 32-39, Slave to 40-47
-    pic_disable_irq(0); // Disable timer for now (would overwhelm us)
+    //pic_disable_irq(0); // Disable timer for now (would overwhelm us)
     pic_enable_irq(1);  // Enable keyboard
 
     init_interrupts();
-
-    pic_remap(32, 40);        // IRQ 0-7 → interrupts 32-39, IRQ 8-15 → interrupts 40-47
-    pic_disable_irq(0);       // Disable timer (would overwhelm us)
-    pic_enable_irq(1);        // Enable keyboard
 
     heap_init();
     init_keyboard();

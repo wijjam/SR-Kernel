@@ -2,6 +2,7 @@
 #include "../include/vga.h"
 #include "../include/rtc.h"
 #include "../include/memory.h"
+#include "../include/process_manager.h"
 #include <stdarg.h>
 
 static int char_to_value[256] = {0};
@@ -20,13 +21,13 @@ void process_input(char* input) {
     } else if (cmd_hash == NEOFETCH_HASH) {
         kprintf("You called neofetch my guy!!!\n");
     } else if (cmd_hash == MEM_HASH) {
-        test_kmalloc_kfree();
+        switch_process();
     } else if (cmd_hash == TIME_HASH) {
         print_rtc_time();
     } else if (cmd_hash == CLEAR_HASH) {
         clearScreen();
-    } else if (cmd_hash == DEBUG_HASH) {
-        
+    } else if (cmd_hash == FRACTURE_HASH) {
+        kprintf("BANAN");
     }
 }
 

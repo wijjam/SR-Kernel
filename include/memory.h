@@ -3,10 +3,25 @@
 
 #include <stdint.h>
 
+#define kfree(pointer) do {  \
+              \
+    kprintf("Freeing pointer at %d\n", pointer);\
+    free(pointer);            \
+    kprintf("The fucking word before free is: %s", pointer);                    \
+    pointer == (void*)0;\
+              \
+    kprintf("Successfully freed and nulled pointer\n");          \
+              \
+              \
+              \
+              \    
+} while (0)
+
 #define HEAP_SIZE 1024 * 1024
 #define MAGIC_FIRST 99999
 #define MAGIC_MIDDLE 88888
 #define MAGIC_LAST 777777
+#define MAGIC_GONE 555555
 
 
 // We will construct the heap like a linked list.
@@ -20,7 +35,9 @@ typedef struct heap {
 
 void heap_init();
 void* kmalloc(uint32_t size);
-void kfree(void* pointer);
+void free(void* pointer);
 void test_kmalloc_kfree();
+void print_heap();
+
 
 #endif

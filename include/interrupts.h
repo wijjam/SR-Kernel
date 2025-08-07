@@ -19,10 +19,8 @@ struct idt_ptr {
 } __attribute__((packed));
 
 void init_interrupts(void);
-void test_software_interrupt(void);
 
-
-extern void isr_wrapper_80(void);
 extern void isr_wrapper_33(void); // new keyboard wrapper
+extern void isr_wrapper_32(void); // new timer wrapper
 
 #endif
