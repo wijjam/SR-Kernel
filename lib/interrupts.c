@@ -2,6 +2,7 @@
 #include "../include/vga.h"
 #include "../include/pic.h"
 #include "../include/io.h"
+#include "../include/process_manager.h"
 
 // The IDT table - 256 entries (one for each possible interrupt)
 static struct idt_entry idt[256];
@@ -49,14 +50,6 @@ void init_interrupts(void) {
     // Use the actual current code segment instead of assuming 0x08
     set_idt_entry(33, (uint32_t)isr_wrapper_33, cs, 0x8E);
     set_idt_entry(32, (uint32_t)isr_wrapper_32, cs, 0x8E);
-}
-
-
-void timer_interrupt_handler() {
-    
-    kprintf("a\n");
-    
-    pic_send_eoi(0);
 }
 
 void setup_time(uint16_t divisor) {

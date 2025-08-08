@@ -12,13 +12,13 @@
 #define ESP_INDEX 6 // Points to the top of the stack which holds all the local variables
 #define EBP_INDEX 7 // Tracks where the start of functions are in the stack. AKA the bounds of the function
 #define EIP_INDEX 8 // VERY IMPORTANT: Points to the next instruction that is going to be read.
+#define EFLAGS_INDEX 9 // The EFLAGS has to do with interrupts, CPU are ready for new interrupts.
+#define CS_INDEX 10 // The CS controlls the rings and such. Saftey for when we get user mode aka OS.
 
 
 typedef struct switch_registers {
-    int reg[9];
+    int reg[10];
 };
-
-void switch_process();
 
 
 

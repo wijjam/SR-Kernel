@@ -21,7 +21,7 @@ void process_input(char* input) {
     } else if (cmd_hash == NEOFETCH_HASH) {
         kprintf("You called neofetch my guy!!!\n");
     } else if (cmd_hash == MEM_HASH) {
-        switch_process();
+        
     } else if (cmd_hash == TIME_HASH) {
         print_rtc_time();
     } else if (cmd_hash == CLEAR_HASH) {
