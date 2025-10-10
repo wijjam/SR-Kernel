@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # OS Development Environment Setup
 echo "Setting up OS development environment..."
 
@@ -10,17 +9,18 @@ export PATH="$PREFIX/bin:$PATH"
 
 # Verify the tools are available
 if command -v i686-elf-gcc &> /dev/null; then
-    echo "✓ Cross-compiler found: $(i686-elf-gcc --version | head -1)"
+    echo "✓ Cross-compiler found: i686-elf-gcc"
 else
     echo "✗ Cross-compiler not found! Make sure it's built in $PREFIX"
-    exit 1
+    echo "Run the setup.sh script to build the cross-compiler."
+    return 1 2>/dev/null || true
 fi
 
 if command -v i686-elf-as &> /dev/null; then
-    echo "✓ Assembler found: $(i686-elf-as --version | head -1)"
+    echo "✓ Assembler found: i686-elf-as"
 else
     echo "✗ Assembler not found!"
-    exit 1
+    return 1 2>/dev/null || true
 fi
 
 echo "✓ Environment ready for OS development!"
@@ -30,4 +30,4 @@ echo "  - i686-elf-gcc (cross-compiler)"
 echo "  - i686-elf-as (assembler)"
 echo "  - i686-elf-ld (linker)"
 echo ""
-echo "You can now run ./run.sh to build and test your kernel."
+echo "You can now run 'make' or 'make run' to build and test your kernel."
