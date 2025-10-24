@@ -6,42 +6,38 @@
 struct PCB* current_process;
 struct PCB* next_process;
 
-volatile struct PCB* pcb_ai;
-volatile struct PCB* pcb_bi;
+struct PCB process_lists[1000];
+uint32_t current_index = 0;
 
 
 void timer_interrupt_handler() {
 
-    
-    if (current_process == pcb_ai) {
-        
-        next_process = pcb_bi;
-        //kprintf(" Current process: %d \n", current_process);
-    } else {
-        next_process = pcb_ai;
-        // kprintf(" Current process: %d \n", current_process);
-            
-    }
 
+    
+
+        // The round robbin functionality
+    int current_idx = (current_process - process_lists);
+    int next_idx = (current_idx + 1) % current_index;
+    next_process = &process_lists[next_idx];
+ //kprintf("This is 10ms=======================================================================\n");
 
     pic_send_eoi(0);
 }
 
-void create_process(struct PCB* pcb, void (*func)()) {
-    static uint32_t next_pid = 1;
-    pcb->PID = next_pid++;
-    pcb->state = 1;
-
+void create_process(void (*func)()) {
+    process_lists[current_index].sleep_time = (uint16_t)0; // assings the sleep time to 0 for the process being created.
+    process_lists[current_index].PID = (uint16_t)current_index; // Gives the process a PID that is explicitly its own.
     // Get ACTUAL CS from CPU
     uint16_t actual_cs;
-    __asm__ volatile("mov %%cs, %0" : "=r"(actual_cs));
+    __asm__ volatile("mov %%cs, %0" : "=r"(actual_cs)); // Gets the CS from the cpu, no Assumsion!
 
-    uint8_t *stack = kmalloc(4096);
-    uint32_t *sp = (uint32_t*)(stack + 4096);
+    uint8_t *stack = kmalloc(4096); // We allocate our custom stack frame to the heap.
+    if (stack == (void*)0) {return;} // we then check if it returns null, if the heap runs out we can not allocate a stack.
+    uint32_t *sp = (uint32_t*)(stack + 4096); // Since stack moves downward we make the stack pointer (esp) point at the top of the heap and then move down.
 
     // IRET frame
     *(--sp) = 0x202;          // EFLAGS
-    *(--sp) = actual_cs;      // CS ← ANVÄND RÄTT CS!
+    *(--sp) = actual_cs;      // CS <- ANVÄND RÄTT CS!
     *(--sp) = (uint32_t)func; // EIP
 
     // POPA frame
@@ -54,13 +50,43 @@ void create_process(struct PCB* pcb, void (*func)()) {
     *(--sp) = 0x00; // ESI
     *(--sp) = 0x00; // EDI
 
-    pcb->saved_esp = (uint32_t)sp;
+    process_lists[current_index].saved_esp = (uint32_t)sp;
+    current_index++;
 }
 
+void sleep(int time) {
 
-void init_process(struct PCB* pcb_a, struct PCB* pcb_b) {
-    kprintf("init_process called!\n");
+    current_process->sleep_time = time;
+
+    __asm__ volatile ("movl $2, 28(%%esp) \n\t" 
+                      "int $0x81"
+        : 
+        : 
+        :             "%eax"
+    );
+
     
-    pcb_ai = pcb_a;
-    pcb_bi = pcb_b;
+
 }
+
+void system_call_interrupt_handler(uint32_t esp_address_variable) {
+
+    kprintf("Successfully called a system call!!!\n");
+
+    uint32_t *stack = (uint32_t *)esp_address_variable; 
+
+
+
+    if (stack[18] == 2) {
+        kprintf("HELLO WORLD!!!!!\n");
+    }
+
+
+    kprintf("The eax you called had this: %d\n", stack[18]);
+
+
+
+
+}
+
+

@@ -5,7 +5,7 @@
 extern _end[];
 // This below finds the end of kernel memory address
 volatile struct heap* start_heap_memory = (volatile struct heap*) _end;
-// heap_end is now 16-bits for the header memory and 8-bits for data memory from the end
+// heap_end is now 16-bytes for the header memory and 8-bytes for data memory from the end
 struct heap* heap_end = ((struct heap*)((char*)((volatile struct heap*) _end) + HEAP_SIZE - sizeof(struct heap) - 8));
 
 void heap_init() {
@@ -31,7 +31,7 @@ void* kmalloc(uint32_t size) {
     }
 
     if (size <= 0) { // This stays as just a size check since if the user writes 0 we will stop it and not assume.
-        kprintf("%eExcuse me but you can't do anything with a memory with 0 bits. Good try but no..\n");
+        kprintf("%eExcuse me but you can't do anything with a memory with 0 byte. Good try but no..\n");
         kprintf("%eProblem encountered in the malloc size <= 0 check\n");
         return (void*)0;
     }
@@ -51,6 +51,7 @@ void* kmalloc(uint32_t size) {
                  uint32_t old_full_size = current_block->size;
                  //kprintf("The old full size when initialized: %d\n", old_full_size);
                 // We check if the first block is the one we are checking. if it is we do not change the magic.
+                
                 if (current_block->prev_size == 0) {
                     
                     // The old full size is what will save and the be used to get the new size for the new block being split.
@@ -189,17 +190,7 @@ void free(void* pointer) {
         } else {
             break;
         }    
-
     }
-
-
-
-
-
-
-
-
-
 }
 
 
@@ -236,6 +227,7 @@ void test_kmalloc_kfree() {
 }
 
 void print_heap() {
+    kprintf("\n");
     struct heap* current = start_heap_memory;
     struct heap* next = (struct heap*)((char*)current + current->size);
     while (current < heap_end) {

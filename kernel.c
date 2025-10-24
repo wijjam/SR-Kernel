@@ -11,25 +11,16 @@
 #include "include/process_manager.h"
 
 
-
-struct PCB pcb_a;
-struct PCB pcb_b;
-
-
-
-void process_a() {
-            kprintf("PROCESS A STARTED!\n");
+void process_worker() {
+    int banan = 0;
+    int process_pid = current_process->PID;
     while(1) {
-        kprintf("A");
+        kprintf("the process running is: %d The sleep time is: %d\n", process_pid, current_process->sleep_time);
+        if (banan == 0) {
+            sleep(200);
+            banan++;
+        }
     }
-}
-
-void process_b() {
-    kprintf("PROCESS B STARTED!\n");
-    while(1) {
-       kprintf("B\n");
-    }
-    
 }
 
 void kernel_main(void) {
@@ -45,16 +36,11 @@ void kernel_main(void) {
     init_char_table();
 
 
-    create_process(&pcb_a, process_a);
-    create_process(&pcb_b, process_b);
 
-    init_process(&pcb_a, &pcb_b);
 
-    current_process = (void*)0;
-    next_process = &pcb_a;
-
-    
-
+    for (int i = 0; i < 100; i++) {
+        create_process(&process_worker);
+    }
     
     __asm__ volatile ("sti"); // opens the flood gates.
     pic_enable_irq(0);

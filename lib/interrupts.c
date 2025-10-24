@@ -48,6 +48,7 @@ void init_interrupts(void) {
     setup_time(11932); // makes it so we get 1 interrupt per 10ms
     
     // Use the actual current code segment instead of assuming 0x08
+    set_idt_entry(129, (uint32_t)isr_wrapper_129, cs, 0x8E); // The system call interrupt
     set_idt_entry(33, (uint32_t)isr_wrapper_33, cs, 0x8E);
     set_idt_entry(32, (uint32_t)isr_wrapper_32, cs, 0x8E);
 }

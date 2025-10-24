@@ -229,8 +229,6 @@ void kprintf(char* start_text, ...){
                     return;
                 break;
 
-
-
             }
 
         } else {

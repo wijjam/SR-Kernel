@@ -22,5 +22,6 @@ void init_interrupts(void);
 
 extern void isr_wrapper_33(void); // new keyboard wrapper
 extern void isr_wrapper_32(void); // new timer wrapper
+extern void isr_wrapper_129(void); // new system_call wrapper
 
 #endif

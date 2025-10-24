@@ -1,4 +1,5 @@
 .section .text
+.global isr_wrapper_129
 .global isr_wrapper_33
 .global isr_wrapper_32
 
@@ -34,3 +35,12 @@ skip_switch:
     popa
     iret
 
+
+isr_wrapper_129:
+    pusha   # saves the registers
+    movl %esp, %ebx
+    pushl %ebx
+    call system_call_interrupt_handler  # calls system_call_interrupt_handler
+    addl $4, %esp # realign stack
+    popa
+    iret

@@ -2,21 +2,18 @@
 #define MEMORY_H
 
 #include <stdint.h>
-
 #define kfree(pointer) do {  \
-              \
-    kprintf("Freeing pointer at %d\n", pointer);\
+               \
+    kprintf("Freeing pointer at 0x%x\n", (uint32_t)pointer);\
     free(pointer);            \
-    kprintf("The fucking word before free is: %s", pointer);                    \
-    pointer == (void*)0;\
-              \
+    pointer = (void*)0;\
+               \
     kprintf("Successfully freed and nulled pointer\n");          \
-              \
-              \
-              \
-              \    
+               \
+               \
+               \
+               \
 } while (0)
-
 #define HEAP_SIZE 1024 * 1024
 #define MAGIC_FIRST 99999
 #define MAGIC_MIDDLE 88888

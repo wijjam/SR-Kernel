@@ -19,9 +19,10 @@ void process_input(char* input) {
     if (cmd_hash == HELP_HASH) {
         cmd_help();
     } else if (cmd_hash == NEOFETCH_HASH) {
-        kprintf("You called neofetch my guy!!!\n");
+        kprintf("%eYou called neofetch my guy!!!\n");
     } else if (cmd_hash == MEM_HASH) {
-        
+        test_kmalloc_kfree();
+        print_heap();
     } else if (cmd_hash == TIME_HASH) {
         print_rtc_time();
     } else if (cmd_hash == CLEAR_HASH) {
