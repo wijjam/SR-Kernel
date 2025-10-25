@@ -14,7 +14,10 @@ isr_wrapper_33:
 # New timer interrupt wrapper (IRQ 0 = interrupt 32)
 isr_wrapper_32:
     pusha
+    movl %esp, %ebx
+    pushl %ebx
     call timer_interrupt_handler
+    addl $4, %esp # realign stack
     
     # Compare current and next
     movl current_process, %eax
@@ -42,5 +45,15 @@ isr_wrapper_129:
     pushl %ebx
     call system_call_interrupt_handler  # calls system_call_interrupt_handler
     addl $4, %esp # realign stack
+    
+    movl current_process, %eax
+    movl next_process, %ebx
+
+    # SAVE current ESP
+    movl %esp, (%eax)
+    
+    # LOAD next ESP
+    movl (%ebx), %esp
+
     popa
     iret

@@ -11,15 +11,20 @@
 #include "include/process_manager.h"
 
 
+void idle_process() {
+       while(1) {
+        // Do nothing, or print "IDLE" 
+        // This keeps the CPU busy when all real processes sleep
+    }
+}
+
 void process_worker() {
-    int banan = 0;
     int process_pid = current_process->PID;
+    sleep(200);
     while(1) {
-        kprintf("the process running is: %d The sleep time is: %d\n", process_pid, current_process->sleep_time);
-        if (banan == 0) {
-            sleep(200);
-            banan++;
-        }
+
+        
+        kprintf("process running right now: %d\n", process_pid);
     }
 }
 
@@ -35,15 +40,17 @@ void kernel_main(void) {
     init_keyboard();
     init_char_table();
 
+    create_process(&idle_process);
 
 
-
-    for (int i = 0; i < 100; i++) {
+    for (int i = 1; i < 100; i++) {
         create_process(&process_worker);
     }
     
+    init_process_scheduler();
     __asm__ volatile ("sti"); // opens the flood gates.
     pic_enable_irq(0);
+    
 
     // Main kernel loop - just wait for interrupts
     while (1) {
