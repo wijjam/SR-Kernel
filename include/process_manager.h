@@ -6,9 +6,24 @@
 
 #include <stdint.h>
 
+typedef struct registers { // This is a map for the stack. Nothing more
+
+    uint32_t edi;       // [0]
+    uint32_t esi;       // [1]
+    uint32_t ebp;       // [2]
+    uint32_t esp;       // [3]
+    uint32_t ebx;       // [4]
+    uint32_t edx;       // [5]
+    uint32_t ecx;       // [6]
+    uint32_t eax;       // [7]
+
+
+} __attribute__((packed)); // __attribute__((packed)) just tells the  compiler to not add padding
+
 typedef struct PCB {
     uint32_t saved_esp;
-    uint16_t PID;
+    struct registers reg;
+    uint32_t PID;
     int sleep_time;
 
 };
@@ -18,9 +33,9 @@ extern struct PCB* next_process;
 
 void create_process(void (*function_address)());
 
-void sleep(int time);
-
 void init_process_scheduler(void);
+
+void schedule();
 
 
 #endif

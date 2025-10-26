@@ -9,6 +9,7 @@
 #include "include/commands.h"
 #include "include/memory.h"
 #include "include/process_manager.h"
+#include "include/forgeproc.h"
 
 
 void idle_process() {

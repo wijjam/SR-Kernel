@@ -41,19 +41,30 @@ skip_switch:
 
 isr_wrapper_129:
     pusha   # saves the registers
-    movl %esp, %ebx
-    pushl %ebx
+    pushl %esp
     call system_call_interrupt_handler  # calls system_call_interrupt_handler
-    addl $4, %esp # realign stack
-    
+    addl $4, %esp
+
+    cmpl $0, need_reschedule
+    je skip_switch_again
+    movl $0, need_reschedule
+
+
     movl current_process, %eax
     movl next_process, %ebx
-
+    cmpl %eax, %ebx
+    je skip_switch_again              # Skip if same
+    
     # SAVE current ESP
     movl %esp, (%eax)
     
     # LOAD next ESP
     movl (%ebx), %esp
+    
+    # Update current_process
+    movl %ebx, current_process
 
-    popa
-    iret
+
+    skip_switch_again:
+        popa
+        iret

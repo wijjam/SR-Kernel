@@ -28,7 +28,7 @@ typedef struct heap {
     uint32_t prev_size; // The previous blocks size
     uint32_t magic;
 
-};
+} __attribute__((packed));
 
 void heap_init();
 void* kmalloc(uint32_t size);
