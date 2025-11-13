@@ -8,8 +8,8 @@ CFLAGS = -std=gnu99 -ffreestanding -O2 -Wall -Wextra -Iinclude
 LDFLAGS = -T linker.ld -ffreestanding -O2 -nostdlib -lgcc
 
 # Source files
-ASM_SOURCES = boot.s
-C_SOURCES = $(wildcard *.c) $(wildcard kernel/*.c) $(wildcard drivers/*.c)
+ASM_SOURCES = boot.s interrupt_stubs.s
+C_SOURCES = $(wildcard *.c) $(wildcard lib/*.c) $(wildcard kernel/*.c) $(wildcard drivers/*.c)
 
 # Object files
 ASM_OBJECTS = $(ASM_SOURCES:.s=.o)

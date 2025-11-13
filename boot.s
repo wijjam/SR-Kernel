@@ -9,7 +9,7 @@
 .section .multiboot
 .align 4
 .long MAGIC
-.long FLAGS  
+.long FLAGS            
 .long CHECKSUM
 
 # Stack setup

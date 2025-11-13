@@ -3,6 +3,11 @@
 volatile int need_reschedule = 0;
 
 void sleep(int time) {
+
+    if (time <= 0) {
+        kprintf("%e you can not make a process sleep: %d", time);
+    }
+
     asm volatile(
         "movl $1, %%eax\n"        // Syscall number: 1 = sleep
         "movl %0, %%ebx\n"        // Argument: time
@@ -43,6 +48,10 @@ void system_call_interrupt_handler(uint32_t* stack) {
         break;
 
         case 2:
+
+            
+
+        break;
             
     }
     
