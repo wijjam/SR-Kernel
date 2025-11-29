@@ -2,7 +2,8 @@
 .global isr_wrapper_129
 .global isr_wrapper_33
 .global isr_wrapper_32
-
+.global isr_wrapper_13
+.global isr_wrapper_0
 
 # New keyboard interrupt wrapper (IRQ 1 = interrupt 33)
 isr_wrapper_33:
@@ -38,7 +39,7 @@ skip_switch:
     popa
     iret
 
-
+# System call interrupt wrapper (IRQ 128 = interrupt 129)
 isr_wrapper_129:
     pusha   # saves the registers
     pushl %esp
@@ -68,3 +69,18 @@ isr_wrapper_129:
     skip_switch_again:
         popa
         iret
+
+
+
+# divide by zero exception wrapper 
+isr_wrapper_0:
+    pusha                           # Save all registers
+    call divide_by_zero_handler # Call our C divide by zero function
+    popa                            # Restore all registers
+    iret                            # Return from interrupt
+# general protection fault exception wrapper
+isr_wrapper_13:
+    pusha                           # Save all registers
+    call general_protection_fault_handler # Call our C general_protection_fault_handler
+    popa                            # Restore all registers
+    iret                            # Return from interrupt

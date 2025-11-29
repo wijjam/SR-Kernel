@@ -49,8 +49,13 @@ void system_call_interrupt_handler(uint32_t* stack) {
 
         case 2:
 
-            
+            kprintf("The values we got are: %d\n", copy_process(regs));
 
+        //__asm__ volatile("hlt");
+
+    
+
+            
         break;
             
     }

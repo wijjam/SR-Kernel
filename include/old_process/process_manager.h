@@ -2,7 +2,6 @@
 #define PROCESS_MANAGER_H
 
 #define SLEEP_SYSCALL_MAGIC 555555
-#define MAX_PROCESSES 100
 
 
 #include <stdint.h>
@@ -17,13 +16,7 @@ typedef struct registers { // This is a map for the stack. Nothing more
     uint32_t edx;       // [5]
     uint32_t ecx;       // [6]
     uint32_t eax;       // [7]
-    
-    uint32_t eip;       // [8]
-    uint32_t cs;        // [9]
-    uint32_t eflags;    // [10]
 
-    uint32_t user_esp;  // [11]
-    uint32_t ss;        // [12]
 
 } __attribute__((packed)); // __attribute__((packed)) just tells the  compiler to not add padding
 
@@ -32,18 +25,16 @@ typedef struct PCB {
     struct registers reg;
     uint32_t PID;
     int sleep_time;
-    struct PCB* next;
-    struct PCB* prev;
-};
 
+};
 extern struct PCB* current_process;
 extern struct PCB* next_process;
 
-int copy_process(uint32_t* esp_stack);
+int copy_process();
 
 void create_process(void (*function_address)());
 
-void init_process_scheduler(void (*func)());
+void init_process_scheduler(void);
 
 void schedule();
 

@@ -22,10 +22,19 @@ void idle_process() {
 void process_worker() {
     int process_pid = current_process->PID;
     sleep(200);
+
+    fork();
+
     while(1) {
 
         
-        kprintf("process running right now: %d\n", process_pid);
+        //kprintf("process running right now: %d\n", process_pid);
+        
+
+        //sleep(100);
+
+        
+    
     }
 }
 
@@ -41,16 +50,12 @@ void kernel_main(void) {
     init_keyboard();
     init_char_table();
 
-    create_process(&idle_process);
+    init_process_scheduler(&idle_process);
 
+    create_process(&process_worker);
 
-    for (int i = 1; i < 100; i++) {
-        create_process(&process_worker);
-    }
-    
-    init_process_scheduler();
     __asm__ volatile ("sti"); // opens the flood gates.
-    pic_enable_irq(0);
+    pic_enable_irq(0); // Enable timer
     
 
     // Main kernel loop - just wait for interrupts

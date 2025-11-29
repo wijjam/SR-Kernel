@@ -6,16 +6,22 @@
 struct PCB* current_process;
 struct PCB* next_process;
 
-struct PCB* process_lists;
-
-uint16_t current_index = 0;
-
-//struct PCB process_lists[1000];
+struct PCB process_lists[1000];
+uint32_t current_index = 0;
 
 void timer_interrupt_handler(uint32_t esp_address_variable) {
             
         // The round robbin functionality
-        //struct registers* stack = (struct registers *)esp_address_variable; 
+
+        struct registers* stack = (struct registers *)esp_address_variable; 
+
+    if (stack->eax != SLEEP_SYSCALL_MAGIC) {
+        for (int i = 0; i < current_index; i++) {
+            if (process_lists[i].sleep_time > 0) {
+                process_lists[i].sleep_time = process_lists[i].sleep_time - 1;
+            }
+        }
+    }
 
     schedule();
 
@@ -25,17 +31,8 @@ void timer_interrupt_handler(uint32_t esp_address_variable) {
 }
 
 void create_process(void (*func)()) {
-
-
-    struct PCB* new_process = (void*) kmalloc(sizeof(struct PCB));
-
-    if (new_process == (void*)0) {return (void*)0;}
-
-    new_process->PID = current_index;
-    new_process->sleep_time = 0;
-    new_process->next = (void*)0;
-    new_process->prev = (void*)0;
-
+    process_lists[current_index].PID = (uint16_t)current_index; // Gives the process a PID that is explicitly its own.
+    process_lists[current_index].sleep_time = 0; // assings the sleep time to 0 for the process being created.
     // Get ACTUAL CS from CPU
     uint16_t actual_cs;
     __asm__ volatile("mov %%cs, %0" : "=r"(actual_cs)); // Gets the CS from the cpu, no Assumsion!
@@ -59,74 +56,31 @@ void create_process(void (*func)()) {
     *(--sp) = 0x00; // ESI
     *(--sp) = 0x00; // EDI
 
-
-    new_process->saved_esp = (uint32_t)sp;
-    if (current_index == 0) {
-        process_lists = new_process;
-        current_index = current_index + 1;
-        return;
-    }
-
-
-    current_index = current_index + 1;
-
-    struct PCB* current = process_lists;
-
-    while (current->next != (void*)0) {
-        current = current->next;
-    }
-
-    current->next = new_process;
-    new_process->prev = current;
+    process_lists[current_index].saved_esp = (uint32_t)sp;
+    current_index++;
 }
 
-void init_process_scheduler(void (*func)()) {
-    current_index = 0;
-
-    create_process(func);
-
-    current_process = process_lists;
-    next_process = process_lists;
+void init_process_scheduler(void) {
+    current_process = &process_lists[0];
+    next_process = &process_lists[0];
 }
 
 void schedule() {
-    // The round robbin functionality
-    struct PCB* sim_current = current_process;
-    do  {
-
-        if (sim_current->next != (void*)0) {
-            next_process = sim_current->next;
-            sim_current = next_process;
-            //kprintf("Hello");
-           
-        } else {
-            next_process = process_lists;
-            sim_current = next_process;
-            //kprintf("No");
-             
-        }
+    int current_idx = (current_process - process_lists);
+    int next_idx = (current_idx + 1) % current_index;
+    
+        // Keep looking until we find one that's awake (or hit idle process 0)
+    while (process_lists[next_idx].sleep_time > 0 && next_idx != 0) {
+        next_idx = (next_idx + 1) % current_index;
+    }
         
-        if (sim_current->sleep_time > 0) {
-            sim_current->sleep_time = sim_current->sleep_time - 1;
-        }
-
-    } while (sim_current->sleep_time > 0);
-
-    //__asm__ volatile("hlt");
-
-
+    next_process = &process_lists[next_idx];
 }
 
 
-int copy_process(uint32_t* esp_stack) {
-    struct PCB* new_process = (void*) kmalloc(sizeof(struct PCB));
-
-    if (new_process == (void*)0) {return (void*)0;}
-
-    new_process->PID = current_index;
-    new_process->sleep_time = 0;
-    new_process->next = (void*)0;
-    new_process->prev = (void*)0;
+int copy_process() {
+    process_lists[current_index].PID = (uint16_t)current_index; // Gives the process a PID that is explicitly its own.
+    process_lists[current_index].sleep_time = 0; // assings the sleep time to 0 for the process being created.
     // Get ACTUAL CS from CPU
 
     uint16_t current_PID;
@@ -142,7 +96,11 @@ int copy_process(uint32_t* esp_stack) {
     uint32_t esp_value;
     uint32_t saved_ebp;
 
-    struct registers* esp_ptr = (struct registers*)esp_stack;
+
+
+    __asm__ volatile("movl %%esp, %0" : "=r"(esp_value) : : "memory");
+
+    struct registers* esp_ptr = (struct registers*)esp_value;
 
 
     ecx = esp_ptr->ecx;
@@ -153,26 +111,20 @@ int copy_process(uint32_t* esp_stack) {
     edi = esp_ptr->edi;
     saved_ebp = esp_ptr->ebp;
 
-    eip_address = esp_ptr->eip;
-
-
-    
+    eip_address = *((int*)(saved_ebp + 4));
 
     __asm__ volatile("mov %%cs, %0" : "=r"(actual_cs)); // Gets the CS from the cpu, no Assumsion!
-
 
     current_PID = current_index;
     uint8_t *stack = kmalloc(4096); // We allocate our custom stack frame to the heap.
     if (stack == (void*)0) {return;} // we then check if it returns null, if the heap runs out we can not allocate a stack.
-    uint32_t *child_ptr = (uint32_t*)(stack + 4096); // Since stack moves downward we make the stack pointer (esp) point at the top of the heap and then move down.
-    uint32_t *parent_ptr = (uint32_t*)(current_process->saved_esp); // start process stuff fix later.
-    uint32_t *new_esp;
+    uint32_t *sp = (uint32_t*)(stack + 4096); // Since stack moves downward we make the stack pointer (esp) point at the top of the heap and then move down.
 
     // IRET frame
     *(--sp) = 0x202;          // EFLAGS
     *(--sp) = actual_cs;      // CS <- ANVÄND RÄTT CS!
 
-   
+    //__asm__ volatile("hlt");
 
     *(--sp) = (uint32_t)eip_address; // EIP
 
@@ -186,35 +138,14 @@ int copy_process(uint32_t* esp_stack) {
     *(--sp) = esi; // ESI
     *(--sp) = edi; // EDI
 
-
-
-
-    for (int i = 0; i < 1024; i--) {
-        *(--sp) = 
-    }
-
-
-
-
-
-
-    new_process->saved_esp = (uint32_t)sp;
-    current_index = current_index + 1;
-
-
-    struct PCB* sim_current = current_process;
-
-    while (sim_current->next != (void*)0) {
-        sim_current = sim_current->next;
-    }
-    sim_current->next = new_process;
+    process_lists[current_index].saved_esp = (uint32_t)sp;
+    current_index++;
 
     __asm__ volatile(
         "movl %0, %%eax \n"
     :
     :   "r"((uint32_t)current_PID)
     );
-    
 
     return;
 }

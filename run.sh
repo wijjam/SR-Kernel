@@ -23,7 +23,7 @@ echo "Compiling kernel..."
 i686-elf-gcc -c kernel.c -o kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 
 # Link everything together
-i686-elf-gcc -T linker.ld -o myos.bin -ffreestanding -O2 -nostdlib boot.o kernel.o interrupt_stubs.o lib/io.o lib/rtc.o lib/vga.o lib/interrupts.o lib/pic.o lib/keyboard.o lib/keymap.o lib/commands.o lib/memory.o lib/process_manager.o lib/forgeproc.o -lgcc
+i686-elf-gcc -T linker.ld -o myos.bin -ffreestanding -O2 -nostdlib boot.o kernel.o interrupt_stubs.o lib/io.o lib/rtc.o lib/vga.o lib/interrupts.o lib/pic.o lib/keyboard.o lib/keymap.o lib/commands.o lib/memory.o lib/process_manager.o lib/forgeproc.o lib/exceptions.o  -lgcc
 # Create ISO
 echo "Creating ISO..."
 cp myos.bin isodir/boot/

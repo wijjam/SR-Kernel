@@ -1,6 +1,6 @@
 #ifndef VGA_H
 #define VGA_H
-
+#include <stdint.h>
 char make_color(char fg, char bg);
 void set_color(char fg, char bg);
 void print_char(char c);

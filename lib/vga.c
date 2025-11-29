@@ -187,6 +187,38 @@ char* double_to_string(double value) {
 }
 
 
+void int_to_hex_string(uint32_t value) {
+    char* hex = "0123456789ABCDEF";
+    char buffer[10]; // Buffer for the digits
+    int i = 0;
+
+    // Handle 0 explicitly
+    if (value == 0) {
+        kprintf("0x0"); // Assuming kprintf can take a string
+        return;
+    }
+
+    // Extract digits
+    while (value != 0) { // Changed condition to work for all hex values
+        buffer[i] = hex[value & 0xF]; // Mask last 4 bits
+        value = value >> 4;           // Shift right
+        i++;                          // <--- IMPORTANT! Don't forget this
+    }
+
+    // Print prefix
+    kprintf("0x");
+
+    // Print buffer in reverse
+    while (i > 0) {
+        i--;
+        // Assuming you have a function to print a single char. 
+        // If kprintf handles "%c", use kprintf("%c", buffer[i]);
+        // Or if kprintf detects char vs string:
+        kprintf("%c", buffer[i]); // Or print_char(buffer[i]); 
+    }
+}
+
+
 
 void kprintf(char* start_text, ...){
     va_list args;
@@ -213,6 +245,11 @@ void kprintf(char* start_text, ...){
                     int value = va_arg(args, int);
                     char* s_value = int_to_string(value);
                     print(s_value);
+                break;
+
+                case 'x':
+                    int hex_value = va_arg(args, int);
+                    int_to_hex_string(hex_value);
                 break;
 
                 case 'f':
