@@ -25,5 +25,6 @@ extern void isr_wrapper_32(void); // new timer wrapper
 extern void isr_wrapper_129(void); // new system_call wrapper
 extern void isr_wrapper_0(void); // new divide by 0 wrapper
 extern void isr_wrapper_13(void); // new general purpose wrapper
+extern void isr_wrapper_14(void); // new page fault wrapper
 
 #endif

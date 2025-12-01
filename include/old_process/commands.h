@@ -15,11 +15,14 @@
 
 
 
-int checkString(char* input, char* compareString);
-
+void init_shell(void);
+char* get_first_word(char* input); 
+char* get_remaining_words(char* input); 
+double calculate_command_hash(char* command);
+void init_char_table(void);
 void process_input(char* command);
 void cmd_help(void);
 void cmd_clear(void);
-void cmd_neofetch(void);  // The OS logo + info!
+void cmd_neofetch(void);  // Your OS logo + info!
 
 #endif

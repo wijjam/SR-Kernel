@@ -69,16 +69,26 @@ void* kmalloc(uint32_t size) {
                 // Set middle here since this will always be after the first block and therefore always middle or last.
                 // We check last below so this magic is safe and if we are on the last block then we change it to last.
                 // We asume middle.
+
                 current_block->magic = MAGIC_MIDDLE;
                 current_block->flag = 0;
                 current_block->prev_size = full_size_request;
                 current_block->size = old_full_size - full_size_request;
 
+                struct heap* neighbor_right = (struct heap*)((char*)current_block + current_block->size);
+                // We have to find the neighboor and check that it is inside of the heap end boundary.
+                if (neighbor_right <= heap_end) {
+                    // Here we make sure the neighboors previous_size also is updated so we do not point to some random old merged head or something.
+                    neighbor_right->prev_size = current_block->size;
+                }
+
                
                 return ((char*)current_block - current_block->prev_size) + sizeof(struct heap);
             }
+            
 
         }
+        
 
         //kprintf("We are stuck WEEEEEEEE");
 
@@ -199,16 +209,32 @@ void free(void* pointer) {
 
 
 void test_kmalloc_kfree() {
-
+    /*
     char* ptr = kmalloc(200);
     char* ptr2 = kmalloc(200);
+    char* ptr3 = kmalloc(200);
 
 
     if (ptr == (void*)0) {
         kprintf("%eHEy no null pointers in my house.\n");
         return;
     }
+    if (ptr2 == (void*)0) {
+        kprintf("%eHEy no null pointers in my house2.\n");
+        return;
+    }    
+    if (ptr3 == (void*)0) {
+        kprintf("%eHEy no null pointers in my house3.\n");
+        return;
+    }
 
+    kfree(ptr2);
+
+    char* ptr4 = kmalloc(100);
+    kfree(ptr3);
+    print_heap();
+
+    
     ptr[0] = 'C';
     ptr[1] = 'A';
     ptr[2] = 'K';
@@ -220,11 +246,100 @@ void test_kmalloc_kfree() {
 
     kfree(ptr);
     print_heap();
-    
-    
+    */
     
 
+    stress_test_traversal_depth();
+
+    
 }
+
+static uint32_t random_seed = 123456789;
+uint32_t krand_final() {
+    random_seed = random_seed * 1103515245 + 12345;
+    return (uint32_t)(random_seed / 65536) % 32768;
+}
+
+uint32_t measure_traversal_steps(uint32_t size_request) {
+    uint32_t steps = 0;
+    struct heap* current_block = start_heap_memory;
+    // Calculate the size the block needs to be, including the 16-byte header
+    uint32_t full_size_request = size_request + sizeof(struct heap); 
+
+    while (current_block < heap_end) {
+        steps++; // THIS IS THE MEASUREMENT OF INEFFICENCY
+        
+        if (current_block->flag == 0) {
+            uint32_t available_size = current_block->size; // Use total block size for comparison
+            if (available_size >= full_size_request) {
+                // If this were real kmalloc, we would allocate and return here.
+                return steps; 
+            }
+        }
+        
+        // Advance to the next block using the current block's size
+        current_block = (struct heap*)((char*)current_block + current_block->size);
+    }
+    return steps; // Return total steps if failed (to see full depth)
+}
+
+void stress_test_traversal_depth() {
+    kprintf("\n=== TRAVERSAL INEFFICIENCY TEST ===\n");
+    void* ptrs[200]; 
+
+    // 1. Fragment the heap (Creating 200 realistic, small blocks)
+    kprintf("[Step 1] Allocating 200 small blocks to maximize the list length...\n");
+    for (int i = 0; i < 200; i++) {
+        // Allocate between 24 and 100 bytes (realistic stack/data struct sizes)
+        uint32_t size = (krand_final() % 76) + 24; 
+        ptrs[i] = kmalloc(size);
+        if (ptrs[i] == (void*)0) {
+            kprintf("Max blocks reached at %d\n", i);
+            break;
+        }
+    }
+    
+    // 2. Punch holes to force the allocator to walk deep
+    // Free every other block. This creates 100 holes (maximum fragmentation).
+    kprintf("[Step 2] Creating fragmentation (Freeing 100 blocks)...\n");
+    for (int i = 0; i < 200; i += 2) {
+        if (ptrs[i] != (void*)0) kfree(ptrs[i]);
+    }
+
+    // 3. THE MEASUREMENT (The worst-case scenario)
+    // We request 1 byte. Since the heap is fragmented, the allocator must scan all 200+ blocks.
+    uint32_t total_steps = measure_traversal_steps(1);
+    
+    kprintf("\n[Step 3] Measuring Search Depth for 1-byte request:\n");
+    kprintf("Total blocks in list (Approx): >100\n");
+    kprintf("Total search steps (N): %d\n", total_steps);
+
+    if (total_steps < 105) {
+        kprintf("Result: Efficency is High. Found block near the start/middle.\n");
+    } else if (total_steps > 150) {
+        kprintf("Result: Efficiency is LOW. Allocator had to scan deep into the list (O(N) confirmed).\n");
+    } else {
+        kprintf("Result: Efficiency is Moderate.\n");
+    }
+
+    // 4. Cleanup
+    kprintf("\n[Step 4] Cleaning up remaining blocks...\n");
+    for (int i = 0; i < 200; i++) {
+        if (ptrs[i] != (void*)0) kfree(ptrs[i]);
+    }
+    kprintf("=== TRAVERSAL TEST COMPLETE ===\n");
+}
+
+
+
+
+
+
+
+
+
+
+
 
 void print_heap() {
     kprintf("\n");
@@ -232,7 +347,7 @@ void print_heap() {
     struct heap* next = (struct heap*)((char*)current + current->size);
     while (current < heap_end) {
 
-        kprintf("We are at address: [%d] with state: [%d] and the size is: [%d] \n", current, current->flag, current->size);
+        kprintf("We are at address: [%x] with state: [%d] and the size is: [%d] \n", current, current->flag, current->size);
         current = next;
         next = (struct heap*)((char*)current + current->size);
         

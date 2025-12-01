@@ -4,11 +4,9 @@
 #include <stdint.h>
 #define kfree(pointer) do {  \
                \
-    kprintf("Freeing pointer at 0x%x\n", (uint32_t)pointer);\
     free(pointer);            \
     pointer = (void*)0;\
                \
-    kprintf("Successfully freed and nulled pointer\n");          \
                \
                \
                \

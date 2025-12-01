@@ -32,11 +32,32 @@ void process_worker() {
         
 
         //sleep(100);
-
-        
     
     }
 }
+
+void timer_process_worker() {
+
+    while(1) {
+        update_print_corner_time();
+        sleep(1); // 100 is 1 second. 
+    }
+}
+
+void worker_process() {
+
+    
+    while(1) {
+        //kprintf("%d worker process running\n", current_process->PID);
+        sleep(1000);
+
+        if (current_process->PID == 2) {
+            //kprintf("I am process 2 and I am happy YAY!\n");
+        }
+
+    }
+}
+
 
 void kernel_main(void) {
 
@@ -48,11 +69,17 @@ void kernel_main(void) {
 
     heap_init();
     init_keyboard();
-    init_char_table();
 
     init_process_scheduler(&idle_process);
 
-    create_process(&process_worker);
+    create_process(&timer_process_worker);
+    create_process(&worker_process);
+    create_process(&worker_process);
+    create_process(&worker_process);
+    create_process(&worker_process);
+
+
+    test_kmalloc_kfree();
 
     __asm__ volatile ("sti"); // opens the flood gates.
     pic_enable_irq(0); // Enable timer

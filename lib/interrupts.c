@@ -53,6 +53,7 @@ void init_interrupts(void) {
     set_idt_entry(32, (uint32_t)isr_wrapper_32, cs, 0x8E); // interrupt timer interrupt
     set_idt_entry(0, (uint32_t)isr_wrapper_0, cs, 0x8E); // Interrupt for divide with 0
     set_idt_entry(13, (uint32_t)isr_wrapper_13, cs, 0x8E); // Interrupt for general purpose exeptions
+    set_idt_entry(14, (uint32_t)isr_wrapper_14, cs, 0x8E); // Interrupt for page fault
 }
 
 void setup_time(uint16_t divisor) {

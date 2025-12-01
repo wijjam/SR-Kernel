@@ -1,5 +1,6 @@
 #include "../include/vga.h"
 #include <stdarg.h>
+#include "../include/rtc.h"
 
 volatile char* video_memory = (volatile char*)0xB8000;
 int cursor_row = 0;
@@ -64,6 +65,23 @@ void print(const char* message) {
         print_char(message[i]);
 
     }
+}
+
+void update_print_corner_time() {
+    // Save current cursor position
+    int saved_row = cursor_row;
+    int saved_col = cursor_col;
+
+    // Move cursor to bottom-right corner
+    cursor_row = 0;
+    cursor_col = 45;
+
+    // Print time
+    print_rtc_time();
+
+    // Restore cursor position
+    cursor_row = saved_row;
+    cursor_col = saved_col;
 }
 
 char* int_to_string(int value) {
@@ -263,7 +281,7 @@ void kprintf(char* start_text, ...){
                     start_text++;
                     print(start_text);
                     color = 0x0F;
-                    return;
+                    
                 break;
 
             }

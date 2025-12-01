@@ -49,6 +49,8 @@ void create_process(void (*func)()) {
     *(--sp) = actual_cs;      // CS <- ANVÄND RÄTT CS!
     *(--sp) = (uint32_t)func; // EIP
 
+    *(--sp) = 0x00; // ERROR CODE (ignored)
+
     // POPA frame
     *(--sp) = 0x00; // EAX
     *(--sp) = 0x00; // ECX
@@ -118,7 +120,7 @@ void schedule() {
 }
 
 
-int copy_process(uint32_t* esp_stack) {
+/*int copy_process(uint32_t* esp_stack) {
     struct PCB* new_process = (void*) kmalloc(sizeof(struct PCB));
 
     if (new_process == (void*)0) {return (void*)0;}
@@ -165,7 +167,7 @@ int copy_process(uint32_t* esp_stack) {
     uint8_t *stack = kmalloc(4096); // We allocate our custom stack frame to the heap.
     if (stack == (void*)0) {return;} // we then check if it returns null, if the heap runs out we can not allocate a stack.
     uint32_t *child_ptr = (uint32_t*)(stack + 4096); // Since stack moves downward we make the stack pointer (esp) point at the top of the heap and then move down.
-    uint32_t *parent_ptr = (uint32_t*)(current_process->saved_esp); // start process stuff fix later.
+    uint32_t *sp = (uint32_t*)(current_process->saved_esp); // start process stuff fix later.
     uint32_t *new_esp;
 
     // IRET frame
@@ -218,3 +220,4 @@ int copy_process(uint32_t* esp_stack) {
 
     return;
 }
+    */

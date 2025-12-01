@@ -18,12 +18,14 @@ typedef struct registers { // This is a map for the stack. Nothing more
     uint32_t ecx;       // [6]
     uint32_t eax;       // [7]
     
-    uint32_t eip;       // [8]
-    uint32_t cs;        // [9]
-    uint32_t eflags;    // [10]
+    uint32_t err_code;  // [8]
 
-    uint32_t user_esp;  // [11]
-    uint32_t ss;        // [12]
+    uint32_t eip;       // [9]
+    uint32_t cs;        // [10]
+    uint32_t eflags;    // [11]
+
+    uint32_t user_esp;  // [12]
+    uint32_t ss;        // [13]
 
 } __attribute__((packed)); // __attribute__((packed)) just tells the  compiler to not add padding
 

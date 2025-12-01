@@ -10,5 +10,6 @@ char* double_to_string(double value);
 void kprintf(char* start_text, ...);
 void clearScreen();
 void backspace();
+void update_print_corner_time();
 
 #endif

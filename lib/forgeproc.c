@@ -43,13 +43,14 @@ void system_call_interrupt_handler(uint32_t* stack) {
     switch (regs->eax) {
         case 1:
             current_process->sleep_time = regs->ebx;
+            //kprintf("%d", current_process->sleep_time);
             schedule();
             need_reschedule = 1;
         break;
 
         case 2:
 
-            kprintf("The values we got are: %d\n", copy_process(regs));
+            //kprintf("The values we got are: %d\n", copy_process(regs));
 
         //__asm__ volatile("hlt");
 
