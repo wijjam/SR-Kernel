@@ -8,46 +8,57 @@ volatile struct heap* start_heap_memory = (volatile struct heap*) _end;
 // heap_end is now 16-bytes for the header memory and 8-bytes for data memory from the end
 struct heap* heap_end = ((struct heap*)((char*)((volatile struct heap*) _end) + HEAP_SIZE - sizeof(struct heap) - 8));
 
+
 void heap_init() {
-    
-    start_heap_memory->flag = 0;
+
     start_heap_memory->size = HEAP_SIZE; // Here we give the heap 1MB, which includes all the headers
     start_heap_memory->prev_size = 0;
-    start_heap_memory->magic = MAGIC_FIRST;
+    set_flag(&(start_heap_memory->size), FREE);
+    set_magic(&(start_heap_memory->size), MAGIC_FIRST);
     kprintf("Initial heap size: %d\n", start_heap_memory->size);
     kprintf("The sizeof heap: %d\n", sizeof(struct heap));
     kprintf("The end of the heap total: %d\n", (char*)start_heap_memory + HEAP_SIZE);
     kprintf("The end of the heap with header and memory space: %d\n", heap_end);
+    kprintf("The heap start is at: %d\n", start_heap_memory);
 }
 
 void* kmalloc(uint32_t size) {
     struct heap* current_block = start_heap_memory;
     //full_size_request is the real size the user is asking for. So they size they want for memory and then the hidden head.
+    size = (size + 7) & ~7;
     uint32_t full_size_request = size + sizeof(struct heap);
+
+    full_size_request = (full_size_request + 7) & ~7;
 
     if (full_size_request > HEAP_SIZE-sizeof(struct heap)) {
         kprintf("%eRequested size exceeds available heap size.\n");
+        __asm__ volatile("hlt");
         return (void*)0;  // Too big for heap
     }
 
     if (size <= 0) { // This stays as just a size check since if the user writes 0 we will stop it and not assume.
         kprintf("%eExcuse me but you can't do anything with a memory with 0 byte. Good try but no..\n");
         kprintf("%eProblem encountered in the malloc size <= 0 check\n");
+        __asm__ volatile("hlt");
         return (void*)0;
     }
    
     while (current_block < heap_end) {
 
 
+        uint8_t flag = get_flag(current_block->size);
+        uint8_t magic = get_magic(current_block->size);
 
-            uint32_t data_size = current_block->size - sizeof(struct heap);
+        uint32_t data_size = current_block->size - sizeof(struct heap);
         
         // If the current block is free we pass into this check.
-        // We do not check for magic last because heap_end should not be able to get down here. But extra percasun
-        if (current_block->flag == 0 && (current_block->magic == MAGIC_FIRST || current_block->magic == MAGIC_MIDDLE)) {
+        // // We do not check for magic last because heap_end should not be able to get down here. But extra percasun
+
+        if (flag == 0 && (magic == MAGIC_FIRST || magic == MAGIC_MIDDLE)) {
+            
             // if the free block has memory enough for the requested size then we pass into this check.
             if (data_size >= full_size_request) {
-
+                
                  uint32_t old_full_size = current_block->size;
                  //kprintf("The old full size when initialized: %d\n", old_full_size);
                 // We check if the first block is the one we are checking. if it is we do not change the magic.
@@ -55,39 +66,54 @@ void* kmalloc(uint32_t size) {
                 if (current_block->prev_size == 0) {
                     
                     // The old full size is what will save and the be used to get the new size for the new block being split.
-                    current_block->flag = 1;
+                    
                     current_block->prev_size = 0;
                     current_block->size = full_size_request;
-                    current_block->magic = MAGIC_FIRST;
+                    set_flag(&(current_block->size), ALLOCATED);
+                    set_magic(&(current_block->size), MAGIC_FIRST);
+
                 } else {
                     // Implement logic to continue spliting and changing when not at the begining later here.
-                    current_block->flag = 1;
+                    
                     current_block->size = full_size_request;
+                    set_flag(&(current_block->size), ALLOCATED);
+                    set_magic(&(current_block->size), MAGIC_MIDDLE);
+
                 }
                 // With this we move forward with just the requested size.
-                current_block = (struct heap*)((char*)current_block + full_size_request);
+                current_block = (struct heap*)((char*)current_block + get_true_size(current_block->size));
+
+
+                flag = get_flag(current_block->size);
+                magic = get_magic(current_block->size);
                 // Set middle here since this will always be after the first block and therefore always middle or last.
                 // We check last below so this magic is safe and if we are on the last block then we change it to last.
                 // We asume middle.
 
-                current_block->magic = MAGIC_MIDDLE;
-                current_block->flag = 0;
                 current_block->prev_size = full_size_request;
                 current_block->size = old_full_size - full_size_request;
 
-                struct heap* neighbor_right = (struct heap*)((char*)current_block + current_block->size);
+                set_flag(&(current_block->size), FREE);
+                set_magic(&(current_block->size), MAGIC_MIDDLE);
+
+
+
+                struct heap* neighbor_right = (struct heap*)((char*)current_block + get_true_size(current_block->size));
                 // We have to find the neighboor and check that it is inside of the heap end boundary.
                 if (neighbor_right <= heap_end) {
                     // Here we make sure the neighboors previous_size also is updated so we do not point to some random old merged head or something.
-                    neighbor_right->prev_size = current_block->size;
+                    neighbor_right->prev_size = get_true_size(current_block->size);
+                    
                 }
 
-               
+                //kprintf("\nThe addresses we get from malloc are: %d\n", ((char*)current_block - current_block->prev_size) + sizeof(struct heap));
                 return ((char*)current_block - current_block->prev_size) + sizeof(struct heap);
             }
             
 
         }
+
+        
         
 
         //kprintf("We are stuck WEEEEEEEE");
@@ -96,247 +122,296 @@ void* kmalloc(uint32_t size) {
         // Since the while stops if we are on it, we wont have to make a check here for it.
         // Therefore we only go forward once and check again to find flag = 1;
         //kprintf("The size of the blocks being passed: %d, \n", current_block->size);
-        current_block = (struct heap*)((char*)current_block + current_block->size);
+        current_block = (struct heap*)((char*)current_block + get_true_size(current_block->size));
 
 
     }
 
-
     return (void*)0;
 }
 
+
+
 void free(void* pointer) {
 
+    
     // Checks the inputed pointer for NILL, exeding heap memory
     if (pointer == (void*)0 || pointer < (void*)start_heap_memory || pointer > (void*)heap_end) {
         kprintf("\n%e Sorry but you are trying to free a block that is out of bounds, or just trying to free a null 1\n");
+        __asm__ volatile("hlt");
         return;
     }
     // Checking if the current header gotten from the pointer is in the heap memory
     struct heap* current_block = (struct heap*)((char*)pointer - sizeof(struct heap));
     if (current_block < start_heap_memory) {
         kprintf("\n%e Sorry but you are trying to free a block that is out of bounds 2\n");
+        __asm__ volatile("hlt");
         return;
     }
     if (current_block->size == 0) {
         kprintf("\n%e Error: Block size is 0, indicating corruption.\n");
+        __asm__ volatile("hlt");
         return;
     }
+
+    uint8_t flag = get_flag(current_block->size);
+    uint8_t magic = get_magic(current_block->size);
+        
+    
+
     // check if the current pointer is a merged and unusable header, if it is then print error and return. !
     //kprintf("Current_block magic: %d\n", current_block->magic);
-    if (!(current_block->magic == MAGIC_FIRST || current_block->magic == MAGIC_MIDDLE)) {
+    if (!(magic == MAGIC_FIRST || magic == MAGIC_MIDDLE)) {
         kprintf("\n%eEhm sorry but... freeing a invlid header is not really allowed so...... yeah\n");
         kprintf("\n%eTried to free a corrupted pointer in kfree()\n");
+        __asm__ volatile("hlt");
         return;
     }
-    if (current_block->flag == 0) {
+    if (flag == 0) {
         kprintf("\n%e Warning: Double-free attempt detected.\n");
+        __asm__ volatile("hlt");
         return;
     }
 
     // check if the size in current head is overflowing, if it is then print a error and return.
     if (current_block->size > HEAP_SIZE) {
         kprintf("Corrupted size in heap block exeding heap end");
+        __asm__ volatile("hlt");
         return;
     }
 
-    current_block->flag = 0;
+    //current_block->flag = 0;
+
+
+
+
+    set_flag(&(current_block->size), FREE);
     
     // We make sure that we only go backwards if we are not on the first block, because backwards from there is outside of the heap.
-    if (current_block->magic != MAGIC_FIRST) {
+    if (magic != MAGIC_FIRST) {
         struct heap* prev_block = (struct heap*)((char*)current_block - current_block->prev_size);
+        
         // Stop once we reach the left most block
         //kprintf("\n=========Just before the first loop =============\n");
+        while (get_flag(prev_block->size) == 0) {
+            flag = get_flag(prev_block->size);
+            magic = get_magic(prev_block->size);
+            //kprintf("The current size is: %d and the address is: %x\n", get_true_size(prev_block->size), prev_block);
 
-        while (prev_block->flag == 0) {
-            
+            //kprintf("\nThe current_block->prev_size is: %d\n", current_block->prev_size);
+            //kprintf("\nThe prev_block->size is: %d\n", get_true_size(prev_block->size));
+            kprintf("STARTING NEW LOOP===\n");
+            if (current_block->prev_size != get_true_size(prev_block->size) && magic != MAGIC_FIRST) {
+                kprintf("%e The heap chain is corrupted, full kernel shutdown is needed.\n");
+                __asm__ volatile("hlt");
+                return;
+            }
 
             // If we are on the first one we stop
-            if (current_block->magic == MAGIC_FIRST) {
+            if (magic == MAGIC_FIRST) {
                 break;
                 // We just continue if we are on the middle.
-            } else if (current_block->magic == MAGIC_MIDDLE) {
+            } else if (magic == MAGIC_MIDDLE) {
 
             } else {
                 // If we reach this then there is a error since the block is useless.
-                kprintf("The magic is: %d\n", current_block->magic);
+                kprintf("The magic is: %d\n", magic);
                 kprintf("%eBlock chain error detected. in the back loop\n");
+                __asm__ volatile("hlt");
                 return;
             }
 
             current_block = prev_block;
             prev_block = (struct heap*)((char*)current_block - current_block->prev_size);
 
+            struct heap* prev_prev_block = (struct heap*)((char*)prev_block - prev_block->prev_size);
+            //kprintf("2 The current size is: %d and the address is: %x\n", get_true_size(prev_block->size), prev_block);
+            //kprintf("2 The current size is: %d and the address is: %x\n", get_true_size(prev_prev_block->size), prev_prev_block);
         }
     }
 
-
+    //kprintf("\nThe block size is: %d\n the flag is: %d\n the magic is: %d\n", get_true_size(current_block->size), flag, magic);
 
     // Check if the next header block to the right has a valid address inside the heap and if it's previous variable is valid.
-    struct heap* next_block = ((struct heap*)((char*)current_block + (current_block->size)));
+    
+
+
+
+    struct heap* next_block = ((struct heap*)((char*)current_block + get_true_size(current_block->size)));
     // Save the current left most block in start_block.
     struct heap* start_block = current_block;
     if ((char*)next_block - next_block->prev_size != (char*)current_block) {
         kprintf("%eUGH next blocks previous is not current. error..\n");
+        __asm__ volatile("hlt");
         return;
     } 
+
+    //kprintf("The start block and current block size is: %d\n", next_block->size);
+
     while (next_block < heap_end) { 
+            flag = get_flag(next_block->size);
+            magic = get_magic(next_block->size);
+            
+        //kprintf("2 The start block and current block size is: %d the next block size is: %d\n", current_block->size, next_block->size);
+        
+        //kprintf("The flag of next is: %d and magic of next is: %d, and size: %d", flag, magic,get_true_size(next_block->size));
+        if (flag == 0 && magic != MAGIC_GONE) {
+            //kprintf("The next block size is: %d\n", next_block->size);
+            start_block->size += get_true_size(next_block->size);
+            set_magic(&(next_block->size), MAGIC_GONE);
 
 
-        if (next_block->flag == 0 && next_block->magic != MAGIC_GONE) {
 
-            start_block->size += next_block->size;
-            next_block->magic = MAGIC_GONE;
-            ((struct heap*)((char*)next_block + (next_block->size)))->prev_size = start_block->size;
+            ((struct heap*)((char*)next_block + (get_true_size(next_block->size))))->prev_size = get_true_size(start_block->size);
 
-            if (start_block->size > HEAP_SIZE) {
+            if (get_true_size(start_block->size) > HEAP_SIZE) {
                 kprintf("%e This is illegal!!!\n");
                 kprintf("For some reason in the second loop the size of start_block is: %d\n", start_block->size);
+                __asm__ volatile("hlt");
             }
-
+            
             current_block = next_block;
-            next_block = ((struct heap*)((char*)current_block + (current_block->size)));
+            next_block = ((struct heap*)((char*)current_block + (get_true_size(next_block->size))));
 
         } else {
             break;
         }    
     }
+
+    // ADD TO LIST TODO.
+
 }
 
 
 
 
+// HELPER FUNCTIONS =============================================================================================================================================================
+
+
+int get_flag(uint32_t size) {
+    //kprintf("%d", (size & FLAG));
+    return ((size & FLAG)/4);
+}
+
+int get_magic(uint32_t size) {
+    //kprintf("%d", (size & MAGIC));
+    return (size & MAGIC);
+}
+
+int get_true_size(uint32_t size) {
+    return size & ~0x7;
+}
+
+void set_flag(uint32_t* size, uint32_t value) {
+    if (value == 1) {
+        *size = (*size) | FLAG;   
+    } else if (value == 0) {
+        (*size) = (*size) & ~FLAG;
+    }
+}
+
+void set_magic(uint32_t* size, uint32_t value) {
+
+    (*size) = (*size) & ~MAGIC;
+    *size = (*size) | value;
+
+}
+
+
+
+
+// DEBUG AND STRESS TEST =========================================================================================================================================
 
 
 void test_kmalloc_kfree() {
-    /*
-    char* ptr = kmalloc(200);
-    char* ptr2 = kmalloc(200);
-    char* ptr3 = kmalloc(200);
+    
+kprintf("\n========== MERGE STRESS TEST ==========\n");
 
 
-    if (ptr == (void*)0) {
-        kprintf("%eHEy no null pointers in my house.\n");
-        return;
-    }
-    if (ptr2 == (void*)0) {
-        kprintf("%eHEy no null pointers in my house2.\n");
-        return;
-    }    
-    if (ptr3 == (void*)0) {
-        kprintf("%eHEy no null pointers in my house3.\n");
-        return;
-    }
-
-    kfree(ptr2);
-
-    char* ptr4 = kmalloc(100);
-    kfree(ptr3);
+    // Test 1: Simple merge - allokera 3, free alla
+    kprintf("\n--- Test 1: Sequential merge ---\n");
+    char* a = kmalloc(100);
+    char* b = kmalloc(100);
+    char* c = kmalloc(100);
+    kprintf("Allocated 3 blocks\n");
     print_heap();
-
     
-    ptr[0] = 'C';
-    ptr[1] = 'A';
-    ptr[2] = 'K';
-    ptr[3] = 'E';
-    ptr[4] = '\0';
-
-    kprintf("Current word: %s\n", ptr);
+    kfree(a);
+    kfree(b);
+    kfree(c);
+    kprintf("Freed all - should be ONE big block\n");
     print_heap();
-
-    kfree(ptr);
+    
+    // Test 2: Merge backwards (free i omvänd ordning)
+    kprintf("\n--- Test 2: Reverse order merge ---\n");
+    a = kmalloc(50);
+    b = kmalloc(50);
+    c = kmalloc(50);
+    kprintf("Allocated 3 blocks\n");
+    
+    kfree(c);  // Sista först
+    kfree(b);
+    kfree(a);
+    kprintf("Freed in reverse - should merge\n");
     print_heap();
-    */
+    
+    // Test 3: Fragmentering sedan merge
+    kprintf("\n--- Test 3: Fragmentation then merge ---\n");
+    char* blocks[10];
+    for (int i = 0; i < 10; i++) {
+        blocks[i] = kmalloc(32);
+    }
+    kprintf("Allocated 10 blocks\n");
+    print_heap();
+    
+    // Free varannan
+    for (int i = 0; i < 10; i += 2) {
+        kfree(blocks[i]);
+    }
+    kprintf("Freed every other (5 blocks) - should be fragmented\n");
+    print_heap();
+    
+    // Free resten
+    for (int i = 1; i < 10; i += 2) {
+        kfree(blocks[i]);
+    }
+    kprintf("Freed remaining - should be ONE block again!\n");
+    print_heap();
+    
+    // Test 4: Middle block merge
+    kprintf("\n--- Test 4: Middle merge ---\n");
+    a = kmalloc(100);
+    b = kmalloc(100);
+    c = kmalloc(100);
+    char* d = kmalloc(100);
+    char* e = kmalloc(100);
+    
+    kfree(b);  // Free middle
+    kfree(d);  // Free another middle
+    kprintf("Freed 2 middle blocks - fragmented\n");
+    print_heap();
+    
+    kfree(c);  // Should merge with b
+    kprintf("Freed block between them - should merge b+c\n");
+    print_heap();
+    
+    kfree(a);
+    kfree(e);
+    kprintf("Freed rest - should be ONE block\n");
+    print_heap();
+    
+    // Test 5: Reuse after merge
+    kprintf("\n--- Test 5: Reuse merged space ---\n");
+    a = kmalloc(500);
+    kprintf("Allocated 500 bytes from merged heap and then free\n");
+    kfree(a);
+    print_heap();
+    
+    kprintf("\n========== MERGE TEST COMPLETE ==========\n");
+
     
 
-    stress_test_traversal_depth();
-
-    
 }
-
-static uint32_t random_seed = 123456789;
-uint32_t krand_final() {
-    random_seed = random_seed * 1103515245 + 12345;
-    return (uint32_t)(random_seed / 65536) % 32768;
-}
-
-uint32_t measure_traversal_steps(uint32_t size_request) {
-    uint32_t steps = 0;
-    struct heap* current_block = start_heap_memory;
-    // Calculate the size the block needs to be, including the 16-byte header
-    uint32_t full_size_request = size_request + sizeof(struct heap); 
-
-    while (current_block < heap_end) {
-        steps++; // THIS IS THE MEASUREMENT OF INEFFICENCY
-        
-        if (current_block->flag == 0) {
-            uint32_t available_size = current_block->size; // Use total block size for comparison
-            if (available_size >= full_size_request) {
-                // If this were real kmalloc, we would allocate and return here.
-                return steps; 
-            }
-        }
-        
-        // Advance to the next block using the current block's size
-        current_block = (struct heap*)((char*)current_block + current_block->size);
-    }
-    return steps; // Return total steps if failed (to see full depth)
-}
-
-void stress_test_traversal_depth() {
-    kprintf("\n=== TRAVERSAL INEFFICIENCY TEST ===\n");
-    void* ptrs[200]; 
-
-    // 1. Fragment the heap (Creating 200 realistic, small blocks)
-    kprintf("[Step 1] Allocating 200 small blocks to maximize the list length...\n");
-    for (int i = 0; i < 200; i++) {
-        // Allocate between 24 and 100 bytes (realistic stack/data struct sizes)
-        uint32_t size = (krand_final() % 76) + 24; 
-        ptrs[i] = kmalloc(size);
-        if (ptrs[i] == (void*)0) {
-            kprintf("Max blocks reached at %d\n", i);
-            break;
-        }
-    }
-    
-    // 2. Punch holes to force the allocator to walk deep
-    // Free every other block. This creates 100 holes (maximum fragmentation).
-    kprintf("[Step 2] Creating fragmentation (Freeing 100 blocks)...\n");
-    for (int i = 0; i < 200; i += 2) {
-        if (ptrs[i] != (void*)0) kfree(ptrs[i]);
-    }
-
-    // 3. THE MEASUREMENT (The worst-case scenario)
-    // We request 1 byte. Since the heap is fragmented, the allocator must scan all 200+ blocks.
-    uint32_t total_steps = measure_traversal_steps(1);
-    
-    kprintf("\n[Step 3] Measuring Search Depth for 1-byte request:\n");
-    kprintf("Total blocks in list (Approx): >100\n");
-    kprintf("Total search steps (N): %d\n", total_steps);
-
-    if (total_steps < 105) {
-        kprintf("Result: Efficency is High. Found block near the start/middle.\n");
-    } else if (total_steps > 150) {
-        kprintf("Result: Efficiency is LOW. Allocator had to scan deep into the list (O(N) confirmed).\n");
-    } else {
-        kprintf("Result: Efficiency is Moderate.\n");
-    }
-
-    // 4. Cleanup
-    kprintf("\n[Step 4] Cleaning up remaining blocks...\n");
-    for (int i = 0; i < 200; i++) {
-        if (ptrs[i] != (void*)0) kfree(ptrs[i]);
-    }
-    kprintf("=== TRAVERSAL TEST COMPLETE ===\n");
-}
-
-
-
-
-
-
-
-
 
 
 
@@ -344,16 +419,13 @@ void stress_test_traversal_depth() {
 void print_heap() {
     kprintf("\n");
     struct heap* current = start_heap_memory;
-    struct heap* next = (struct heap*)((char*)current + current->size);
+    struct heap* next = (struct heap*)((char*)current + get_true_size(current->size));
     while (current < heap_end) {
 
-        kprintf("We are at address: [%x] with state: [%d] and the size is: [%d] \n", current, current->flag, current->size);
+        kprintf("We are at address: [%x] with state: [%d] and the size is: [%d] \n", current, get_flag(current->size), get_true_size(current->size));
         current = next;
-        next = (struct heap*)((char*)current + current->size);
+        next = (struct heap*)((char*)current + get_true_size(current->size));
         
     }
     kprintf("\n");
 }
-
-
-

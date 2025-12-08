@@ -17,7 +17,7 @@ void process_input(char* input) {
         kprintf("%eYou called neofetch my guy!!!\n");
     } else if (checkString(input, "mem")) {
         test_kmalloc_kfree();
-        print_heap();
+        
     } else if (checkString(input, "time")) {
         print_rtc_time();
     } else if (checkString(input, "clear")) {
