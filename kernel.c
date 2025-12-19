@@ -10,12 +10,14 @@
 #include "include/memory.h"
 #include "include/process_manager.h"
 #include "include/forgeproc.h"
+#include "include/paging_manager.h"
 
 
 void idle_process() {
        while(1) {
         // Do nothing, or print "IDLE" 
         // This keeps the CPU busy when all real processes sleep
+        __asm__ volatile("hlt");
     }
 }
 
@@ -66,24 +68,32 @@ void kernel_main(void) {
     pic_enable_irq(1);  // Enable keyboard
 
     init_interrupts();
-
     heap_init();
+    init_paging();
     init_keyboard();
+
+
+
+
+
+    
 
     init_process_scheduler(&idle_process);
 
     create_process(&timer_process_worker);
-    create_process(&worker_process);
-    create_process(&worker_process);
-    create_process(&worker_process);
-    create_process(&worker_process);
-
-
-    test_kmalloc_kfree();
+    //create_process(&worker_process);
 
     __asm__ volatile ("sti"); // opens the flood gates.
     pic_enable_irq(0); // Enable timer
     
+
+map_virtual_to_physical_address(0xDEAD0000, 0xB8000);
+
+// Skriv via den nya adressen
+uint16_t* virtual_video = (uint16_t*)0xDEAD0000;
+virtual_video[0] = 0x0F00 | 'X';  // Vit 'X' i hörnet
+
+kprintf("If you see an X in top-left, paging works!\n");
 
     // Main kernel loop - just wait for interrupts
     while (1) {

@@ -26,7 +26,7 @@ void process_input(char* input) {
         kprintf("BANAN");
     }
     else {
-        kprintf("%eCommand not found\n");
+        kprintf("\n%eCommand not found\n");
     }
 
 }

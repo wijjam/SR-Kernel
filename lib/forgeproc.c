@@ -5,7 +5,7 @@ volatile int need_reschedule = 0;
 void sleep(int time) {
 
     if (time <= 0) {
-        kprintf("%e you can not make a process sleep: %d", time);
+        kprintf("%e you can not make a process sleep: %d ms", time*10);
     }
 
     asm volatile(

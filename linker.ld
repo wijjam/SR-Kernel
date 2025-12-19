@@ -25,7 +25,12 @@ SECTIONS
         *(COMMON)
         *(.bss)
     }
-    . = ALIGN(4096);
-    _end = .;
+
+    . = ALIGN(4096); /* align the paging to be 4KB for the 12 bit flags */
+    _paging_dir = .;
+    . += 4096;       /* gives 4KB to the dir */
+    _paging_table1 = .;
+    . += 4096;       /* gives 4KB to the paging table */
+    _end = .;        /* start of the heap and end of kernel memory */
 
 }

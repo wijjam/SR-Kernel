@@ -138,14 +138,14 @@ void free(void* pointer) {
     // Checks the inputed pointer for NILL, exeding heap memory
     if (pointer == (void*)0 || pointer < (void*)start_heap_memory || pointer > (void*)heap_end) {
         kprintf("\n%e Sorry but you are trying to free a block that is out of bounds, or just trying to free a null 1\n");
-        __asm__ volatile("hlt");
+        
         return;
     }
     // Checking if the current header gotten from the pointer is in the heap memory
     struct heap* current_block = (struct heap*)((char*)pointer - sizeof(struct heap));
     if (current_block < start_heap_memory) {
         kprintf("\n%e Sorry but you are trying to free a block that is out of bounds 2\n");
-        __asm__ volatile("hlt");
+        
         return;
     }
     if (current_block->size == 0) {
@@ -169,7 +169,7 @@ void free(void* pointer) {
     }
     if (flag == 0) {
         kprintf("\n%e Warning: Double-free attempt detected.\n");
-        __asm__ volatile("hlt");
+        
         return;
     }
 
@@ -284,7 +284,6 @@ void free(void* pointer) {
 
 
 
-
 // HELPER FUNCTIONS =============================================================================================================================================================
 
 
@@ -315,6 +314,10 @@ void set_magic(uint32_t* size, uint32_t value) {
     (*size) = (*size) & ~MAGIC;
     *size = (*size) | value;
 
+}
+
+uint32_t get_heap_size() {
+    return HEAP_SIZE;
 }
 
 

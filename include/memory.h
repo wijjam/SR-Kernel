@@ -38,6 +38,8 @@ int get_flag(uint32_t size);
 int get_magic(uint32_t size);
 int get_true_size(uint32_t size);
 
+uint32_t get_heap_size();
+
 void set_flag(uint32_t* size, uint32_t value);
 void set_magic(uint32_t* size, uint32_t value);
 
