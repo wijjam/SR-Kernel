@@ -1,10 +1,13 @@
 #include "../include/vga.h"
 #include <stdarg.h>
 #include "../include/rtc.h"
+#include "../include/keyboard.h"
 
 volatile char* video_memory = (volatile char*)0xB8000;
 int cursor_row = 0;
 int cursor_col = 0;
+
+int has_changed_row = 0;
 char color = 0x0F;
 
 
@@ -12,8 +15,8 @@ char make_color(char fg, char bg) {
     return fg | (bg << 4);
 }
 
-void set_color(char fg, char bg) {
-    color = make_color(fg, bg);
+void set_color(char choosen_color) {
+    color = choosen_color;
 }
 
 void print_char(char c) {
@@ -66,6 +69,9 @@ void print(const char* message) {
 
     }
 }
+
+
+
 
 void update_print_corner_time() {
     // Save current cursor position
@@ -223,9 +229,7 @@ void int_to_hex_string(uint32_t value) {
         i++;                          // <--- IMPORTANT! Don't forget this
     }
 
-    // Print prefix
-    kprintf("0x");
-
+    
     // Print buffer in reverse
     while (i > 0) {
         i--;
@@ -275,24 +279,16 @@ void kprintf(char* start_text, ...){
                     char* sd_value = double_to_string(d_value);
                     print(sd_value);
                 break;
-
-                case 'e':
-                    color = 0x04;
-                    start_text++;
-                    print(start_text);
-                    color = 0x0F;
-                    
-                break;
-
             }
 
         } else {
             print_char(*start_text);
+            
         }
 
         start_text = start_text + 1;
     }
-
+    color = 0x0F;
 
     va_end(args);
 }
@@ -313,10 +309,33 @@ void clearScreen() {
 
 
 void backspace() {
-    if (cursor_col > 0) { // Checks that the cursos is not touching the left end
-        cursor_col--; // Moves back one space
-        print_char(' '); // Removes the space infront of it
-        cursor_col--; // Moves back one space to write on the newly deleted space
+
+    int position = (cursor_row * 80 + cursor_col) * 2;
+    int buffer_position = get_buffer_position();
+
+    if (buffer_position > 0 && cursor_col < 1) {
+        cursor_row--;
+        cursor_col = 80;
     }
 
+    else if (buffer_position > 0 || (buffer_position == 0 && cursor_col != 11) ) { // Checks that the cursos is not touching the left end
+        video_memory[position] = ' ';
+        video_memory[position-2] = ' ';
+        cursor_col--;
+
+    } 
+
 }
+
+void cursor_blinker(){
+    
+    int position = (cursor_row * 80 + cursor_col) * 2;
+
+    if (video_memory[position] == ' ') {
+        video_memory[position] = 0xDB;
+        video_memory[position+1] = 0x07;
+    } else {
+        video_memory[position] = ' ';
+    }
+}
+

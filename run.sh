@@ -14,17 +14,18 @@ i686-elf-gcc -c lib/interrupts.c -o lib/interrupts.o -std=gnu99 -ffreestanding -
 i686-elf-gcc -c lib/pic.c -o lib/pic.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 i686-elf-gcc -c lib/keyboard.c -o lib/keyboard.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 i686-elf-gcc -c lib/keymap.c -o lib/keymap.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
-i686-elf-gcc -c lib/commands.c -o lib/commands.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
+i686-elf-gcc -c lib/raxzus_shell.c -o lib/raxzus_shell.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 i686-elf-gcc -c lib/memory.c -o lib/memory.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 i686-elf-gcc -c lib/process_manager.c -o lib/process_manager.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 i686-elf-gcc -c lib/forgeproc.c -o lib/forgeproc.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 i686-elf-gcc -c lib/paging_manager.c -o lib/paging_manager.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
+i686-elf-gcc -c lib/raxzus_shell_ui.c -o lib/raxzus_shell_ui.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 
 echo "Compiling kernel..."
 i686-elf-gcc -c kernel.c -o kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 
 # Link everything together
-i686-elf-gcc -T linker.ld -o myos.bin -ffreestanding -O2 -nostdlib boot.o kernel.o interrupt_stubs.o lib/io.o lib/rtc.o lib/vga.o lib/interrupts.o lib/pic.o lib/keyboard.o lib/keymap.o lib/commands.o lib/memory.o lib/process_manager.o lib/forgeproc.o lib/exceptions.o lib/paging_manager.o  -lgcc
+i686-elf-gcc -T linker.ld -o myos.bin -ffreestanding -O2 -nostdlib boot.o kernel.o interrupt_stubs.o lib/io.o lib/rtc.o lib/vga.o lib/interrupts.o lib/pic.o lib/keyboard.o lib/keymap.o lib/raxzus_shell.o lib/memory.o lib/process_manager.o lib/forgeproc.o lib/exceptions.o lib/paging_manager.o lib/raxzus_shell_ui.o -lgcc
 # Create ISO
 echo "Creating ISO..."
 cp myos.bin isodir/boot/

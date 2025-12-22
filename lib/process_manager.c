@@ -10,12 +10,21 @@ struct PCB* process_lists;
 
 uint16_t current_index = 0;
 
+uint32_t blink_counter = 0;
+
 //struct PCB process_lists[1000];
 
 void timer_interrupt_handler(uint32_t esp_address_variable) {
             
         // The round robbin functionality
         //struct registers* stack = (struct registers *)esp_address_variable; 
+    
+
+    blink_counter++;
+    if (blink_counter >= 50) {
+        cursor_blinker();
+        blink_counter = 0;
+    }
 
     schedule();
 

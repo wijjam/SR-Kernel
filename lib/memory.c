@@ -15,11 +15,15 @@ void heap_init() {
     start_heap_memory->prev_size = 0;
     set_flag(&(start_heap_memory->size), FREE);
     set_magic(&(start_heap_memory->size), MAGIC_FIRST);
-    kprintf("Initial heap size: %d\n", start_heap_memory->size);
-    kprintf("The sizeof heap: %d\n", sizeof(struct heap));
-    kprintf("The end of the heap total: %d\n", (char*)start_heap_memory + HEAP_SIZE);
-    kprintf("The end of the heap with header and memory space: %d\n", heap_end);
-    kprintf("The heap start is at: %d\n", start_heap_memory);
+
+    kprintf_white("[MEM] Initial heap size: %d\n", start_heap_memory->size);
+    kprintf_white("[MEM] The sizeof heap: %d\n", sizeof(struct heap));
+    //kprintf_white("[MEM] The end of the heap total: %d", (char*)start_heap_memory + HEAP_SIZE);
+    //kprintf_green("........[OK]\n");
+    //kprintf_white("[MEM] The end of the heap with header and memory space: %d", heap_end);
+    //kprintf_green("........[OK]\n");
+    //kprintf_white("[MEM] The heap start is at: %d", start_heap_memory);
+    //kprintf_green("........[OK]\n");
 }
 
 void* kmalloc(uint32_t size) {
@@ -31,14 +35,14 @@ void* kmalloc(uint32_t size) {
     full_size_request = (full_size_request + 7) & ~7;
 
     if (full_size_request > HEAP_SIZE-sizeof(struct heap)) {
-        kprintf("%eRequested size exceeds available heap size.\n");
+        kprintf_red("Requested size exceeds available heap size.\n");
         __asm__ volatile("hlt");
         return (void*)0;  // Too big for heap
     }
 
     if (size <= 0) { // This stays as just a size check since if the user writes 0 we will stop it and not assume.
-        kprintf("%eExcuse me but you can't do anything with a memory with 0 byte. Good try but no..\n");
-        kprintf("%eProblem encountered in the malloc size <= 0 check\n");
+        kprintf_red("Excuse me but you can't do anything with a memory with 0 byte. Good try but no..\n");
+        kprintf_red("Problem encountered in the malloc size <= 0 check\n");
         __asm__ volatile("hlt");
         return (void*)0;
     }
@@ -137,19 +141,19 @@ void free(void* pointer) {
     
     // Checks the inputed pointer for NILL, exeding heap memory
     if (pointer == (void*)0 || pointer < (void*)start_heap_memory || pointer > (void*)heap_end) {
-        kprintf("\n%e Sorry but you are trying to free a block that is out of bounds, or just trying to free a null 1\n");
+        kprintf_red("\n Sorry but you are trying to free a block that is out of bounds, or just trying to free a null 1\n");
         
         return;
     }
     // Checking if the current header gotten from the pointer is in the heap memory
     struct heap* current_block = (struct heap*)((char*)pointer - sizeof(struct heap));
     if (current_block < start_heap_memory) {
-        kprintf("\n%e Sorry but you are trying to free a block that is out of bounds 2\n");
+        kprintf_red("\n Sorry but you are trying to free a block that is out of bounds 2\n");
         
         return;
     }
     if (current_block->size == 0) {
-        kprintf("\n%e Error: Block size is 0, indicating corruption.\n");
+        kprintf_red("\n Error: Block size is 0, indicating corruption.\n");
         __asm__ volatile("hlt");
         return;
     }
@@ -162,20 +166,20 @@ void free(void* pointer) {
     // check if the current pointer is a merged and unusable header, if it is then print error and return. !
     //kprintf("Current_block magic: %d\n", current_block->magic);
     if (!(magic == MAGIC_FIRST || magic == MAGIC_MIDDLE)) {
-        kprintf("\n%eEhm sorry but... freeing a invlid header is not really allowed so...... yeah\n");
-        kprintf("\n%eTried to free a corrupted pointer in kfree()\n");
+        kprintf_red("\nEhm sorry but... freeing a invlid header is not really allowed so...... yeah\n");
+        kprintf_red("\nTried to free a corrupted pointer in kfree()\n");
         __asm__ volatile("hlt");
         return;
     }
     if (flag == 0) {
-        kprintf("\n%e Warning: Double-free attempt detected.\n");
+        kprintf_red("\n Warning: Double-free attempt detected.\n");
         
         return;
     }
 
     // check if the size in current head is overflowing, if it is then print a error and return.
     if (current_block->size > HEAP_SIZE) {
-        kprintf("Corrupted size in heap block exeding heap end");
+        kprintf_red("Corrupted size in heap block exeding heap end");
         __asm__ volatile("hlt");
         return;
     }
@@ -200,9 +204,9 @@ void free(void* pointer) {
 
             //kprintf("\nThe current_block->prev_size is: %d\n", current_block->prev_size);
             //kprintf("\nThe prev_block->size is: %d\n", get_true_size(prev_block->size));
-            kprintf("STARTING NEW LOOP===\n");
+            //kprintf("STARTING NEW LOOP===\n");
             if (current_block->prev_size != get_true_size(prev_block->size) && magic != MAGIC_FIRST) {
-                kprintf("%e The heap chain is corrupted, full kernel shutdown is needed.\n");
+                kprintf_red(" The heap chain is corrupted, full kernel shutdown is needed.\n");
                 __asm__ volatile("hlt");
                 return;
             }
@@ -216,7 +220,7 @@ void free(void* pointer) {
             } else {
                 // If we reach this then there is a error since the block is useless.
                 kprintf("The magic is: %d\n", magic);
-                kprintf("%eBlock chain error detected. in the back loop\n");
+                kprintf_red("Block chain error detected. in the back loop\n");
                 __asm__ volatile("hlt");
                 return;
             }
@@ -241,7 +245,7 @@ void free(void* pointer) {
     // Save the current left most block in start_block.
     struct heap* start_block = current_block;
     if ((char*)next_block - next_block->prev_size != (char*)current_block) {
-        kprintf("%eUGH next blocks previous is not current. error..\n");
+        kprintf_red("UGH next blocks previous is not current. error..\n");
         __asm__ volatile("hlt");
         return;
     } 
@@ -265,7 +269,7 @@ void free(void* pointer) {
             ((struct heap*)((char*)next_block + (get_true_size(next_block->size))))->prev_size = get_true_size(start_block->size);
 
             if (get_true_size(start_block->size) > HEAP_SIZE) {
-                kprintf("%e This is illegal!!!\n");
+                kprintf_red(" This is illegal!!!\n");
                 kprintf("For some reason in the second loop the size of start_block is: %d\n", start_block->size);
                 __asm__ volatile("hlt");
             }

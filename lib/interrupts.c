@@ -37,12 +37,12 @@ void install_idt(void) {
 }
 
 void init_interrupts(void) {
-    kprintf("Setting up interrupts....\n");
+    kprintf_white("[INIT] Setting up interrupts....");
     
     // Check current code segment
     uint16_t cs;
     __asm__ volatile ("mov %%cs, %0" : "=r" (cs));
-    kprintf("Current code segment: %d\n", cs);
+    //kprintf("Current code segment: %d\n", cs);
     
     install_idt();
     setup_time(11932); // makes it so we get 1 interrupt per 10ms
@@ -54,6 +54,8 @@ void init_interrupts(void) {
     set_idt_entry(0, (uint32_t)isr_wrapper_0, cs, 0x8E); // Interrupt for divide with 0
     set_idt_entry(13, (uint32_t)isr_wrapper_13, cs, 0x8E); // Interrupt for general purpose exeptions
     set_idt_entry(14, (uint32_t)isr_wrapper_14, cs, 0x8E); // Interrupt for page fault
+
+    kprintf_green("[OK]\n");
 }
 
 void setup_time(uint16_t divisor) {

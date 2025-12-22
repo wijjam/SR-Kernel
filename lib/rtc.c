@@ -22,6 +22,6 @@ void print_rtc_time(void) {
     uint16_t year = bcd_to_binary(raw_year);
     year += 2000;
     
-    kprintf("Current time: %d/%d/%d %d:%d:%d\n", 
-            month, day, (int)year, hours, minutes, seconds);
+    kprintf("  Current time: %d/%d/%d %d:%d   \n", 
+            day, month, (int)year, hours, minutes);
 }

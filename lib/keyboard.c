@@ -3,7 +3,7 @@
 #include "../include/pic.h"
 #include "../include/vga.h"
 #include "../include/keymap.h"
-#include "../include/commands.h"
+#include "../include/raxzus_shell.h"
 #include "../include/memory.h"
 
 static int left_shift_pressed = 0;
@@ -16,7 +16,7 @@ static int right_shift_pressed = 0;
 
 // Create the command buffer where we save the keyboard input
 static char command_buffer[256];
-static int buffer_pos = 0;
+int buffer_pos = 0;
 
 void keyboard_interrupt_handler(void) {
     uint8_t scancode = inb(KEYBOARD_DATA_PORT);
@@ -43,10 +43,13 @@ void keyboard_interrupt_handler(void) {
                 char ascii = scancode_to_ascii(scancode, shift_active);
                 if (ascii != 0) {
                     if (ascii == '\n') {
+                        
                         command_buffer[buffer_pos] = '\0';  // Null terminate
                         process_input(command_buffer);    // Process the command
                         buffer_pos = 0;                     // Reset for next command
-                         kprintf("\n> ");                    // Show prompt
+            
+                        kprintf_cyan("RaxzusOS > ");
+                    // Show prompt
                     } else if (ascii == '\b') {
                         // Handle backspace
                         backspace();
@@ -55,8 +58,13 @@ void keyboard_interrupt_handler(void) {
                      // Move cursor back and clear character
     }
                     } else if (ascii != 0) {
-                        command_buffer[buffer_pos++] = ascii;
-                        kprintf("%c", ascii);  // Echo the character
+                        if (buffer_pos < 256) {
+                            command_buffer[buffer_pos] = ascii;
+                            kprintf("%c", ascii);  // Echo the character
+                            buffer_pos = buffer_pos + 1;
+                        } else {
+                            buffer_pos = 256;
+                        }
             }  // Just print the character
                 }
             }
@@ -68,7 +76,15 @@ void keyboard_interrupt_handler(void) {
 }
 
 void init_keyboard(void) {
-    kprintf("Keyboard driver initialized\n");
+
+    kprintf_white("[INIT] Keyboard driver initialized........");
+
+    kprintf_green("[OK]\n");
+
     // Nothing special needed for basic keyboard
     // Hardware is already configured by BIOS
+}
+
+int get_buffer_position() {
+    return buffer_pos;
 }

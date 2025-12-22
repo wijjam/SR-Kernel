@@ -8,5 +8,6 @@
 
 void keyboard_interrupt_handler(void);
 void init_keyboard(void);
+int get_buffer_position();
 
 #endif

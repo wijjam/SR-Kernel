@@ -1,15 +1,26 @@
 #include "../include/pic.h"
 #include "../include/io.h"
+#include "../include/vga.h"
 
 void pic_remap(uint8_t offset1, uint8_t offset2) {
+
+
+    
+
     // Save current interrupt masks (which IRQs are enabled/disabled)
+
+    kprintf_white("[INIT] Establishing connection with PIC");
+
     uint8_t mask1 = inb(PIC1_DATA);
     uint8_t mask2 = inb(PIC2_DATA);
     
     // Start initialization sequence for both PICs
     outb(PIC1_COMMAND, 0x11);  // Initialize Master PIC
     outb(PIC2_COMMAND, 0x11);  // Initialize Slave PIC
+    kprintf_green(".........[OK]\n");
     
+    kprintf_white("[INIT] Mapping with Vector offset");
+
     // Set interrupt vector offsets
     outb(PIC1_DATA, offset1);  // Master PIC: IRQ 0-7 → interrupts offset1 to offset1+7
     outb(PIC2_DATA, offset2);  // Slave PIC: IRQ 8-15 → interrupts offset2 to offset2+7
@@ -27,6 +38,10 @@ void pic_remap(uint8_t offset1, uint8_t offset2) {
     // Restore the interrupt masks
     outb(PIC1_DATA, mask1);
     outb(PIC2_DATA, mask2);
+
+
+    kprintf_green(".........[OK]\n");
+
 }
 
 void pic_enable_irq(uint8_t irq) {

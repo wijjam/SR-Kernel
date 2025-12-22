@@ -80,7 +80,7 @@ void map_virtual_to_physical_address(uint32_t virtual_address, uint32_t choosen_
 }
 
 void map_kernel_memory() {
-    uint32_t heap_end = (uint32_t)start_of_heap + get_heap_size();
+    uint32_t heap_end = (uint32_t)start_of_heap + get_heap_size() + 2*4096;
 
     for (uint32_t addr = 0; addr < heap_end; addr += 4096) {
         map_virtual_to_physical_address(addr, addr);
@@ -89,9 +89,18 @@ void map_kernel_memory() {
 
 
 void init_paging() {
+    kprintf_white("[MEM] Setting up entries........");
+    kprintf_green("[OK]\n");
     setup_entries();
+    kprintf_white("[MEM] Creating blank entries........");
+    kprintf_green("[OK]\n");
     map_kernel_memory();
+    kprintf_white("[MEM] Mapping memory........");
+    kprintf_green("[OK]\n");
     set_CR3_register();
+    kprintf_white("[MEM] Assigning CR3 to paging dir........");
+    kprintf_green("[OK]\n");
     set_CR0_32_bit_register(1);
-
+    kprintf_white("[MEM] Fliping the CR0 bit........");
+    kprintf_green("[OK]\n");
 }
